@@ -102,6 +102,13 @@ an OpenEMR older than 8.2.0 the module stays inactive and core keeps working.
 Contributions are welcome once the first release is out. Until then, open an issue to discuss
 the design.
 
+## Custom OpenEMR work
+
+OpenVisit is built and maintained by Alexandru Duduman. If your practice needs OpenEMR to do
+more than this module does, such as integrations with other systems, custom modules, telehealth
+workflows or hosting, consulting is available. Get in touch on
+[LinkedIn](https://www.linkedin.com/in/aduduman/).
+
 ## License
 
 Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later, the same license as
