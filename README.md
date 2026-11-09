@@ -1,3 +1,4 @@
+https://github.com/user-attachments/assets/1b295c59-23a4-4e8d-92f5-79ab37a68e61
 # OpenVisit
 
 Self-hosted video visits for [OpenEMR](https://www.open-emr.org) 8.2+, powered by [Jitsi Meet](https://jitsi.org).
