@@ -37,7 +37,11 @@ $fileroot = OEGlobalsBag::getInstance()->get('fileroot');
     ->registerNamespaceIfNotExists('OpenVisit\\OpenEMR\\Modules\\OpenVisit\\', __DIR__ . DIRECTORY_SEPARATOR . 'src');
 
 $supported = Bootstrap::coreSupported();
-$results = $supported ? (new SelfCheck(ModuleConfig::fromGlobals(), new CurlProber()))->run() : [];
+$results = [];
+if ($supported) {
+    $bootstrap = new Bootstrap(OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher());
+    $results = (new SelfCheck(ModuleConfig::fromGlobals(), new CurlProber(), $bootstrap->recordingFiles()))->run();
+}
 $icons = [CheckResult::PASS => 'fa-check-circle text-success', CheckResult::WARN => 'fa-exclamation-triangle text-warning', CheckResult::FAIL => 'fa-times-circle text-danger'];
 ?>
 <!DOCTYPE html>
