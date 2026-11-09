@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- Patient portal: telehealth appointments show a Join video visit button. The portal session
+  identifies the patient; the module issues a regular join link and sends them to it.
+
 ## [0.3.0] - 2026-11-09
 
 An administrator can see what is missing before the first visit, and a clinic can stand up the
