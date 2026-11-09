@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 # Jibri runs this after each recording with the recording's folder as $1. It makes the mp4
 # streamable, notes its duration and hands the folder to OpenVisit through a .ready marker.
 set -eu
