@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ 'Video visit'|xlt }} - {{ patientName|text }}</title>
+    {{ setupHeader() }}
+    <link rel="stylesheet" href="{{ assets|attr }}/css/visit.css">
+</head>
+<body class="openvisit-room">
+<header class="openvisit-bar">
+    <div class="openvisit-bar__who">
+        <strong>{{ patientName|text }}</strong>
+        <span class="text-muted ml-2">{{ startsAt|text }}</span>
+        {% if encounter %}<span class="text-muted ml-2">{{ 'Encounter'|xlt }} #{{ encounter|text }}</span>{% endif %}
+    </div>
+    <div class="openvisit-bar__status" id="openvisit-status" data-state="loading">{{ 'Connecting to the video server'|xlt }}&hellip;</div>
+    <button type="button" class="btn btn-danger btn-sm" id="openvisit-end">
+        <i class="fa fa-phone-slash mr-1" aria-hidden="true"></i>{{ 'End visit'|xlt }}
+    </button>
+</header>
+<main id="openvisit-meet"></main>
+<div class="openvisit-ended d-none" id="openvisit-ended">
+    <h2>{{ 'Visit ended'|xlt }}</h2>
+    <p id="openvisit-ended-detail"></p>
+    <p class="text-muted">{{ 'You can close this tab. The encounter is in the patient chart.'|xlt }}</p>
+</div>
+<script type="application/json" id="openvisit-config">{{ clientConfig }}</script>
+<script src="{{ assets|attr }}/js/visit.js" defer></script>
+</body>
+</html>
