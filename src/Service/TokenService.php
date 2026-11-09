@@ -3,6 +3,8 @@
 /**
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -131,6 +133,14 @@ final class TokenService
         }
         $visit = $this->sessions->findById($token->sessionId);
         return $visit === null || $visit->isEnded() ? null : $token;
+    }
+
+    /** Whether a real link belongs to a visit that has ended, so the join page can say so. */
+    public function visitEndedFor(string $plaintext): bool
+    {
+        $token = $this->tokens->findByHash(self::hash($plaintext));
+        $visit = $token === null ? null : $this->sessions->findById($token->sessionId);
+        return $visit !== null && $visit->isEnded();
     }
 
     /** Counts one use atomically; false when the cap was reached by a concurrent request. */

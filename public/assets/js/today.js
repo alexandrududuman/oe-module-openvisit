@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Telehealth page: unscheduled visits. Search a patient, start, and the room opens in a new tab.
 (function () {
   'use strict';
@@ -38,7 +39,7 @@
       start.addEventListener('click', function () {
         start.disabled = true;
         post({ action: 'visit.adhoc', pid: String(patient.pid) })
-          .then(function (result) { window.open(result.url, '_blank', 'noopener'); window.location.reload(); })
+          .then(function (result) { window.openvisitOpen.call(result.url, patient.name); window.location.reload(); })
           .catch(function (e) { start.disabled = false; error.textContent = e.message; });
       });
       item.appendChild(label);

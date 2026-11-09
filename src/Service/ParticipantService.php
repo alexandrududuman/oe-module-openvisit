@@ -3,6 +3,8 @@
 /**
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -46,6 +48,12 @@ final class ParticipantService
                 return;
             }
         }
+    }
+
+    /** Once a visit is over nobody is in it, whether or not their browser said goodbye. */
+    public function closeAll(int $sessionId): void
+    {
+        $this->participants->closeOpen($sessionId, $this->gateway->now()->format(self::DB_FORMAT));
     }
 
     /** The participant row this link opened and has not closed yet, if any. */

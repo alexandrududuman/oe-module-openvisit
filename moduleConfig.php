@@ -6,6 +6,8 @@
  *
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -17,6 +19,7 @@ use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\ModulesClassLoader;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Bootstrap;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Config\ModuleConfig;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\SelfCheck\CheckResult;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\SelfCheck\CurlProber;
@@ -28,10 +31,17 @@ if (!AclMain::aclCheckCore('admin', 'super')) {
     exit;
 }
 
-(new ModulesClassLoader(OEGlobalsBag::getInstance()->getProjectDir()))
+// fileroot rather than getProjectDir(), which older cores lack; they get a plain message below.
+$fileroot = OEGlobalsBag::getInstance()->get('fileroot');
+(new ModulesClassLoader(is_string($fileroot) ? $fileroot : dirname(__DIR__, 4)))
     ->registerNamespaceIfNotExists('OpenVisit\\OpenEMR\\Modules\\OpenVisit\\', __DIR__ . DIRECTORY_SEPARATOR . 'src');
 
-$results = (new SelfCheck(ModuleConfig::fromGlobals(), new CurlProber()))->run();
+$supported = Bootstrap::coreSupported();
+$results = [];
+if ($supported) {
+    $bootstrap = new Bootstrap(OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher());
+    $results = (new SelfCheck(ModuleConfig::fromGlobals(), new CurlProber(), $bootstrap->recordingFiles()))->run();
+}
 $icons = [CheckResult::PASS => 'fa-check-circle text-success', CheckResult::WARN => 'fa-exclamation-triangle text-warning', CheckResult::FAIL => 'fa-times-circle text-danger'];
 ?>
 <!DOCTYPE html>
@@ -44,7 +54,12 @@ $icons = [CheckResult::PASS => 'fa-check-circle text-success', CheckResult::WARN
 <div class="container mt-3">
     <h3><?php echo xlt('OpenVisit Telehealth'); ?> <small class="text-muted"><?php echo xlt('setup check'); ?></small></h3>
     <p><?php echo xlt('Settings live under Administration, Globals, in the OpenVisit tab. This page tells you what still needs attention.'); ?></p>
-    <?php if (SelfCheck::allPassed($results)) : ?>
+    <?php if (!$supported) : ?>
+        <div class="alert alert-danger" id="openvisit-check-summary" data-status="unsupported">
+            <?php echo xlt('OpenVisit needs OpenEMR'); ?> <?php echo text(Bootstrap::MIN_OPENEMR); ?> <?php echo xlt('or newer. This server runs'); ?> <?php echo text(Bootstrap::coreVersion()); ?>.
+            <?php echo xlt('The module stays inactive until OpenEMR is upgraded.'); ?>
+        </div>
+    <?php elseif (SelfCheck::allPassed($results)) : ?>
         <div class="alert alert-success" id="openvisit-check-summary" data-status="pass"><?php echo xlt('Ready for video visits.'); ?></div>
     <?php else : ?>
         <div class="alert alert-danger" id="openvisit-check-summary" data-status="fail"><?php echo xlt('Not ready yet. Fix the items marked in red.'); ?></div>

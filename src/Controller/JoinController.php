@@ -3,6 +3,8 @@
 /**
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -67,12 +69,14 @@ final class JoinController
         ]);
     }
 
-    /** @return array{ok: bool, participantId?: int, error?: string} */
+    /** @return array{ok: bool, participantId?: int, ended?: bool, error?: string} */
     public function event(string $plaintext, string $action, int $participantId, string $userAgent): array
     {
         $token = $this->tokens->resolve($plaintext);
         if ($token === null) {
-            return ['ok' => false, 'error' => 'unknown link'];
+            return $this->tokens->visitEndedFor($plaintext)
+                ? ['ok' => false, 'ended' => true, 'error' => 'visit ended']
+                : ['ok' => false, 'error' => 'unknown link'];
         }
         if ($action === 'joined') {
             $open = $this->participants->openForToken($token->sessionId, $token->id);

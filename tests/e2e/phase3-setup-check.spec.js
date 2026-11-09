@@ -1,4 +1,5 @@
 // @ts-check
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Phase 3 journey: an administrator runs the setup check and reads what still needs attention.
 const { test, expect } = require('@playwright/test');
 const { login, openMenuEntry, frameBySrc, configureOpenVisit } = require('./helpers');

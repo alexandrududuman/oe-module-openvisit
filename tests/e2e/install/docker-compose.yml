@@ -1,0 +1,33 @@
+# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
+# Pristine OpenEMR without the module. run.sh adds it the way a clinic would, then the install
+# journey registers, installs, enables and uses it through the browser.
+name: openvisit-install
+
+services:
+  mysql:
+    image: mariadb:11.4
+    command: ['mariadbd', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_general_ci']
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  openemr:
+    image: openemr/openemr:${OPENEMR_TAG:-8.5.0}
+    ports:
+      - '${INSTALL_HTTP_PORT:-8350}:80'
+    volumes:
+      - ${OPENVISIT_DIST:?run through run.sh}:/opt/openvisit:ro
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_ROOT_PASS: root
+      MYSQL_USER: openemr
+      MYSQL_PASS: openemr
+      OE_USER: admin
+      OE_PASS: pass
+    depends_on:
+      mysql:
+        condition: service_healthy

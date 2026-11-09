@@ -1,3 +1,4 @@
+{# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later. #}
 <!DOCTYPE html>
 <html>
 <head>
@@ -15,10 +16,17 @@
     </div>
     <div class="openvisit-bar__status" id="openvisit-status" data-state="loading">{{ 'Connecting'|xlt }}&hellip;</div>
 </header>
+<div class="openvisit-record-message d-none" id="openvisit-recording-banner" role="status">
+    <span class="openvisit-dot" aria-hidden="true"></span>{{ 'This visit is being recorded.'|xlt }}
+</div>
 <main id="openvisit-meet"></main>
 <div class="openvisit-ended d-none" id="openvisit-left">
     <h2>{{ 'You left the visit'|xlt }}</h2>
     <p>{{ 'If that was a mistake, reload this page to come back in.'|xlt }}</p>
+</div>
+<div class="openvisit-ended d-none" id="openvisit-over">
+    <h2>{{ 'The visit has ended'|xlt }}</h2>
+    <p>{{ 'The clinic closed the call. You can close this page.'|xlt }}</p>
 </div>
 <script type="application/json" id="openvisit-config">{{ clientConfig }}</script>
 <script src="{{ assets|attr }}/js/join.js" defer></script>

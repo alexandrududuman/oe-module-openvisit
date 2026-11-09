@@ -3,6 +3,8 @@
 /**
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -95,6 +97,16 @@ final class ModuleConfig
     public function sendEmail(): bool
     {
         return $this->value(Settings::SEND_EMAIL) === '1';
+    }
+
+    public function allowRecording(): bool
+    {
+        return $this->value(Settings::ALLOW_RECORDING) === '1';
+    }
+
+    public function recordingsInbox(): string
+    {
+        return rtrim(trim($this->value(Settings::RECORDINGS_INBOX)), '/');
     }
 
     public function showPatientLastInitial(): bool

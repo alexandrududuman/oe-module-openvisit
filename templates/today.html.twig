@@ -1,3 +1,4 @@
+{# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later. #}
 <!DOCTYPE html>
 <html>
 <head>
@@ -59,8 +60,8 @@
                     </td>
                     <td class="openvisit-joined">{{ row.joined|text }}</td>
                     <td class="text-right">
-                        {% if configured %}
-                            <a class="btn btn-sm btn-primary" target="_blank" rel="noopener" href="{{ row.url|attr }}">
+                        {% if configured and row.status != 'ended' and row.status != 'cancelled' %}
+                            <a class="btn btn-sm btn-primary" target="_blank" rel="noopener" href="{{ row.url|attr }}" data-openvisit-room data-title="{{ row.patient|attr }}">
                                 <i class="fa fa-video mr-1" aria-hidden="true"></i>{% if row.status == 'active' %}{{ 'Rejoin'|xlt }}{% else %}{{ 'Start video visit'|xlt }}{% endif %}
                             </a>
                         {% endif %}
@@ -72,6 +73,7 @@
     {% endif %}
 </div>
 <script type="application/json" id="openvisit-today-config">{{ todayConfig }}</script>
+<script src="{{ assets|attr }}/js/open-in-dock.js" defer></script>
 <script src="{{ assets|attr }}/js/today.js" defer></script>
 </body>
 </html>

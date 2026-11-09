@@ -3,6 +3,8 @@
 /**
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -34,6 +36,14 @@ final class SqlParticipantStore implements ParticipantStore
         QueryUtils::sqlStatementThrowException(
             'UPDATE openvisit_participant SET left_at = ? WHERE id = ? AND left_at IS NULL',
             [$leftAt, $participantId],
+        );
+    }
+
+    public function closeOpen(int $sessionId, string $leftAt): void
+    {
+        QueryUtils::sqlStatementThrowException(
+            'UPDATE openvisit_participant SET left_at = ? WHERE session_id = ? AND left_at IS NULL',
+            [$leftAt, $sessionId],
         );
     }
 

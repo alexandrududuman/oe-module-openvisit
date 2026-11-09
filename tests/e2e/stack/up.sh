@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 # Boots the e2e stack, loads the OpenEMR demo data, installs and enables the module.
 # Usage: tests/e2e/stack/up.sh   (env: OPENEMR_HTTP_PORT, JITSI_HTTPS_PORT, JITSI_JWT_SECRET)
 set -euo pipefail

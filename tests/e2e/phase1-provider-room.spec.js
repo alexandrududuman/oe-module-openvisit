@@ -1,8 +1,9 @@
 // @ts-check
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Phase 1 journey: admin points OpenVisit at Jitsi, a physician books a telehealth
 // appointment in the calendar, starts the video visit, ends it, and the encounter exists.
 const { test, expect } = require('@playwright/test');
-const { login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, configureOpenVisit } = require('./helpers');
+const { login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, openAppointment, deleteAppointment, configureOpenVisit, dockedRoom, closeDockedRoom } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -53,9 +54,7 @@ test.describe('OpenVisit provider room', () => {
     await expect(eventTime).toBeVisible();
     // Telehealth appointments are marked in the calendar (camera icon via a module class).
     await expect(calendar.locator('.openvisit_telehealth', { hasText: PATIENT.last }).first()).toBeVisible();
-    await eventTime.click();
-    const edit = await frameByUrl(page, /add_edit_event\.php.*eid=/);
-    await edit.locator('#form_patient').waitFor();
+    const edit = await openAppointment(page, '10:00');
     await expect(edit.locator('#form_patient')).toHaveValue(new RegExp(PATIENT.last));
     const start = edit.locator('#openvisit-start a');
     await expect(start).toBeVisible({ timeout: 30_000 });
@@ -63,23 +62,23 @@ test.describe('OpenVisit provider room', () => {
     expect(eid).toMatch(/^\d+$/);
 
     // 3. Start opens the room in a new tab; the provider joins as moderator.
-    const [room] = await Promise.all([context.waitForEvent('page'), start.click()]);
-    await room.waitForLoadState('domcontentloaded');
-    await expect(room.locator('#openvisit-status')).toBeVisible();
+    await start.click();
+    const room = await dockedRoom(page);
+    await expect(page.locator('#openvisit-dock .ovd-window[data-kind="call"] .ovd-detail')).toBeVisible();
     // Jitsi shows its pre-join screen (camera and microphone check); the provider clicks Join.
     const jitsi = room.frameLocator('#openvisit-meet iframe').first();
     const joinButton = jitsi.getByRole('button', { name: /join meeting|join/i }).first();
     await joinButton.click({ timeout: 60_000 });
     await expect.poll(() => room.evaluate(() => window.openvisit && window.openvisit.state), { timeout: 60_000 })
       .toBe('joined');
-    await room.screenshot({ path: 'tests/e2e/results/physician-in-room.png' });
+    await page.screenshot({ path: 'tests/e2e/results/physician-in-room.png' });
 
     // 4. End the visit.
     await room.locator('#openvisit-end').click();
     await expect.poll(() => room.evaluate(() => window.openvisit.state), { timeout: 30_000 }).toBe('ended');
     await expect(room.locator('#openvisit-ended')).toBeVisible();
-    await room.screenshot({ path: 'tests/e2e/results/physician-visit-ended.png' });
-    await room.close();
+    await page.screenshot({ path: 'tests/e2e/results/physician-visit-ended.png' });
+    await closeDockedRoom(page);
 
     // Back in OpenEMR the appointment dialog is still open; close it like a user would.
     await page.bringToFront();
@@ -95,11 +94,6 @@ test.describe('OpenVisit provider room', () => {
     await page.screenshot({ path: 'tests/e2e/results/physician-today-ended.png' });
 
     // 6. Clean up: the physician deletes the test appointment from the calendar.
-    expect(await clickTopMenu(page, 'Calendar')).toBe(true);
-    const calendarAgain = await frameByUrl(page, /\/main\/calendar\//);
-    await calendarAgain.locator('a.event_time', { hasText: '10:00' }).last().click();
-    const editAgain = await frameByUrl(page, /add_edit_event\.php.*eid=/);
-    await editAgain.locator('#form_delete').click();
-    await waitForDialogToClose(page, 'add_edit_event.php');
+    await deleteAppointment(page, '10:00');
   });
 });

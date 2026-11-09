@@ -3,6 +3,8 @@
 /**
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -27,6 +29,18 @@ final class SqlSessionStore implements SessionStore
     public function findByAppointment(int $eid): ?Visit
     {
         $rows = QueryUtils::fetchRecords('SELECT ' . self::COLUMNS . ' FROM openvisit_session WHERE pc_eid = ?', [$eid]);
+        return $rows === [] ? null : $this->hydrate($rows[0]);
+    }
+
+    public function findByEncounter(int $encounter): ?Visit
+    {
+        $rows = QueryUtils::fetchRecords('SELECT ' . self::COLUMNS . ' FROM openvisit_session WHERE encounter = ? ORDER BY id DESC LIMIT 1', [$encounter]);
+        return $rows === [] ? null : $this->hydrate($rows[0]);
+    }
+
+    public function findByRoom(string $roomName): ?Visit
+    {
+        $rows = QueryUtils::fetchRecords('SELECT ' . self::COLUMNS . ' FROM openvisit_session WHERE room_name = ?', [$roomName]);
         return $rows === [] ? null : $this->hydrate($rows[0]);
     }
 

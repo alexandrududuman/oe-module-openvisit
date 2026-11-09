@@ -1,5 +1,7 @@
+# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 # Throwaway stack for the browser journeys: OpenEMR 8.5 (official image) with the module
-# mounted in, MariaDB, and Jitsi Meet with JWT auth. Used by CI and by `npm run stack:up`.
+# mounted in, MariaDB, Jitsi Meet with JWT auth and a Jibri recorder. Used by CI and by
+# `npm run stack:up`.
 name: openvisit-e2e
 
 services:
@@ -21,6 +23,7 @@ services:
       - '${OPENEMR_HTTPS_PORT:-9300}:443'
     volumes:
       - ../../..:/var/www/localhost/htdocs/openemr/interface/modules/custom_modules/oe-module-openvisit:ro
+      - recordings:/var/openvisit
     environment:
       MYSQL_HOST: mysql
       MYSQL_ROOT_PASS: root
@@ -43,22 +46,29 @@ services:
       ENABLE_AUTH: 1
       ENABLE_GUESTS: 0
       AUTH_TYPE: jwt
+      # Roles come from the JWT moderator claim only (token_affiliation). With jicofo's own JWT
+      # authentication or auto-owner, every patient and guest would become a moderator.
+      JICOFO_ENABLE_AUTH: 0
+      ENABLE_AUTO_OWNER: 0
       JWT_APP_ID: ${JITSI_APP_ID:-openvisit}
       JWT_APP_SECRET: ${JITSI_JWT_SECRET:-openvisit-e2e-secret-change-me-0123456789abcdef}
       ENABLE_LOBBY: 1
-      ENABLE_RECORDING: 0
+      ENABLE_RECORDING: 1
       ENABLE_XMPP_WEBSOCKET: 1
-      XMPP_MUC_MODULES: token_affiliation
+      XMPP_MUC_MODULES: token_affiliation,openvisit_lobby_bypass
       XMPP_DOMAIN: meet.jitsi
       XMPP_AUTH_DOMAIN: auth.meet.jitsi
       XMPP_GUEST_DOMAIN: guest.meet.jitsi
       XMPP_MUC_DOMAIN: muc.meet.jitsi
       XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
-      XMPP_RECORDER_DOMAIN: recorder.meet.jitsi
+      XMPP_HIDDEN_DOMAIN: hidden.meet.jitsi
       XMPP_SERVER: xmpp.meet.jitsi
       XMPP_BOSH_URL_BASE: http://xmpp.meet.jitsi:5280
       JICOFO_AUTH_PASSWORD: ${JICOFO_AUTH_PASSWORD:-e2ejicofo0123456789abcdef}
       JVB_AUTH_PASSWORD: ${JVB_AUTH_PASSWORD:-e2ejvb0123456789abcdef}
+      JIBRI_XMPP_PASSWORD: ${JIBRI_XMPP_PASSWORD:-e2ejibri0123456789abcdef}
+      JIBRI_RECORDER_PASSWORD: ${JIBRI_RECORDER_PASSWORD:-e2erecorder0123456789abcdef}
+      JIBRI_BREWERY_MUC: jibribrewery
       JVB_BREWERY_MUC: jvbbrewery
       JVB_PORT: 10000
     depends_on:
@@ -69,6 +79,8 @@ services:
   jitsi-prosody:
     image: ghcr.io/jitsi/prosody:${JITSI_VERSION:-stable-11248-3}
     expose: ['5222', '5280']
+    volumes:
+      - ../../../docker/prosody/mod_openvisit_lobby_bypass.lua:/prosody-plugins-custom/mod_openvisit_lobby_bypass.lua:ro
     environment: *jitsi-env
     networks:
       meet.jitsi:
@@ -91,6 +103,28 @@ services:
       - jitsi-prosody
     networks:
       meet.jitsi:
+
+  # Shares the web container's network so the meeting URL https://localhost:8443 works inside it.
+  jitsi-jibri:
+    image: ghcr.io/jitsi/jibri:${JITSI_VERSION:-stable-11248-3}
+    network_mode: service:jitsi-web
+    shm_size: 2gb
+    cap_add: [SYS_ADMIN]
+    volumes:
+      - recordings:/storage
+      - ../../../docker/jibri/finalize.sh:/opt/openvisit/finalize.sh:ro
+    environment:
+      <<: *jitsi-env
+      JIBRI_RECORDING_DIR: /storage/recordings
+      JIBRI_FINALIZE_RECORDING_SCRIPT_PATH: /opt/openvisit/finalize.sh
+      JIBRI_STRIP_DOMAIN_JID: muc
+      IGNORE_CERTIFICATE_ERRORS: 1
+      DISPLAY: ':0'
+    depends_on:
+      - jitsi-jicofo
+
+volumes:
+  recordings:
 
 networks:
   meet.jitsi:

@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * @package   OpenVisit
+ * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
+ */
+
 declare(strict_types=1);
 
 namespace OpenVisit\OpenEMR\Modules\OpenVisit\Tests\Unit;
@@ -129,6 +137,15 @@ final class TokenServiceTest extends TestCase
 
         self::assertSame(TokenCheck::CLOSED, $this->service->check($issued->plaintext, 'ip')->status);
         self::assertNull($this->service->resolve($issued->plaintext));
+        self::assertTrue($this->service->visitEndedFor($issued->plaintext));
+    }
+
+    public function testVisitEndedIsOnlyReportedForRealLinksOfEndedVisits(): void
+    {
+        $issued = $this->service->issue($this->visit, $this->appointment, JoinToken::ROLE_PATIENT, null, 6);
+
+        self::assertFalse($this->service->visitEndedFor($issued->plaintext));
+        self::assertFalse($this->service->visitEndedFor('not-a-real-token'));
     }
 
     public function testUseCapIsEnforcedAtomicallyAndGoodLinksDoNotCountAsAttempts(): void

@@ -1,8 +1,10 @@
+{# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later. #}
 <!DOCTYPE html>
 <html>
 <head>
     <title>{{ 'Telehealth history'|xlt }}</title>
     {{ setupHeader() }}
+    <link rel="stylesheet" href="{{ assets|attr }}/css/recordings.css">
 </head>
 <body>
 <div class="container-fluid mt-3">
@@ -14,18 +16,20 @@
         <table class="table table-sm table-striped" id="openvisit-history">
             <thead><tr>
                 <th>{{ 'Date'|xlt }}</th><th>{{ 'Time'|xlt }}</th><th>{{ 'Patient'|xlt }}</th><th>{{ 'Provider'|xlt }}</th>
-                <th>{{ 'Visit'|xlt }}</th><th>{{ 'Started'|xlt }}</th><th>{{ 'Minutes'|xlt }}</th><th>{{ 'Joined'|xlt }}</th><th>{{ 'Encounter'|xlt }}</th>
+                <th>{{ 'Visit'|xlt }}</th><th>{{ 'Started'|xlt }}</th><th>{{ 'Minutes'|xlt }}</th><th>{{ 'Joined'|xlt }}</th><th>{{ 'Encounter'|xlt }}</th><th>{{ 'Recordings'|xlt }}</th>
             </tr></thead>
             <tbody>
             {% for row in rows %}
                 <tr data-eid="{{ row.eid|attr }}">
                     <td>{{ row.date|text }}</td><td>{{ row.time|text }}</td><td>{{ row.patient|text }}</td><td>{{ row.provider|text }}</td>
                     <td>{{ row.status|text }}</td><td>{{ row.startedAt|text }}</td><td>{{ row.duration|text }}</td><td>{{ row.joined|text }}</td><td>{{ row.encounter|text }}</td>
+                    <td class="openvisit-recordings">{% if row.recordings is not empty %}{% include '_recording-thumbs.html.twig' with { recordings: row.recordings } %}{% endif %}</td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
     {% endif %}
 </div>
+<script src="{{ assets|attr }}/js/open-in-dock.js" defer></script>
 </body>
 </html>

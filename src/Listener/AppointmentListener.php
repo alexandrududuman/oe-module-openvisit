@@ -3,6 +3,8 @@
 /**
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -41,8 +43,9 @@ final class AppointmentListener
 
         $url = Bootstrap::MODULE_PATH . '/public/visit.php?eid=' . $eid;
         echo '<div class="mt-2" id="openvisit-start">'
-            . '<a class="btn btn-primary btn-sm" target="_blank" rel="noopener" href="' . attr($url) . '">'
+            . '<a class="btn btn-primary btn-sm" target="_blank" rel="noopener" data-openvisit-room href="' . attr($url) . '">'
             . '<i class="fa fa-video mr-1" aria-hidden="true"></i>' . xlt('Start video visit')
-            . '</a></div>';
+            . '</a></div>'
+            . '<script src="' . attr(Bootstrap::assetPath() . '/js/open-in-dock.js') . '"></script>';
     }
 }

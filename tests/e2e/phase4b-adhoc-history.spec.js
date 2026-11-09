@@ -1,8 +1,9 @@
 // @ts-check
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Phase 4b journey: a physician starts a visit with a patient who has no appointment, ends it,
 // and finds it in the visit history.
 const { test, expect } = require('@playwright/test');
-const { login, clickTopMenu, frameByUrl, configureOpenVisit } = require('./helpers');
+const { login, clickTopMenu, frameByUrl, configureOpenVisit, dockedRoom, closeDockedRoom } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -25,15 +26,15 @@ test.describe('OpenVisit unscheduled visits', () => {
     const result = today.locator('#openvisit-adhoc-results li', { hasText: PATIENT.name });
     await expect(result).toBeVisible();
 
-    const [room] = await Promise.all([context.waitForEvent('page'), result.getByRole('button', { name: /start video visit/i }).click()]);
-    await room.waitForLoadState('domcontentloaded');
+    await result.getByRole('button', { name: /start video visit/i }).click();
+    const room = await dockedRoom(page);
     await expect(room.locator('.openvisit-bar__who')).toContainText(PATIENT.name);
     await expect(room.locator('.openvisit-bar__who')).toContainText('Encounter');
     const eid = new URL(room.url()).searchParams.get('eid');
     expect(eid).toMatch(/^\d+$/);
     await room.locator('#openvisit-end').click();
     await expect.poll(() => room.evaluate(() => window.openvisit.state), { timeout: 30_000 }).toBe('ended');
-    await room.close();
+    await closeDockedRoom(page);
 
     // The Telehealth page lists it as ended today, and the history page keeps it.
     await page.bringToFront();

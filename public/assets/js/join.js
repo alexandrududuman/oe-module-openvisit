@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Patient and guest room: joins with a non-moderator token and waits in the lobby until admitted.
 (function () {
   'use strict';
@@ -6,9 +7,11 @@
   const status = document.getElementById('openvisit-status');
   const meet = document.getElementById('openvisit-meet');
   const left = document.getElementById('openvisit-left');
+  const over = document.getElementById('openvisit-over');
+  const recordingBanner = document.getElementById('openvisit-recording-banner');
   let participantId = null;
 
-  window.openvisit = { state: 'loading' };
+  window.openvisit = { state: 'loading', recording: 'off' };
 
   function setState(state, text) {
     window.openvisit.state = state;
@@ -20,8 +23,11 @@
     const body = new URLSearchParams({ t: config.token, action: action, participant_id: String(participantId || 0), site: config.site });
     return fetch(config.eventsUrl + '?site=' + encodeURIComponent(config.site), { method: 'POST', body: body, credentials: 'same-origin', keepalive: true })
       .then(function (r) { return r.json(); })
-      .then(function (result) { if (result && result.participantId) { participantId = result.participantId; } })
-      .catch(function () {});
+      .then(function (result) {
+        if (result && result.participantId) { participantId = result.participantId; }
+        return result || {};
+      })
+      .catch(function () { return {}; });
   }
 
   function loadApi() {
@@ -43,6 +49,9 @@
       configOverwrite: {
         prejoinConfig: { enabled: true },
         disableDeepLinking: true,
+        // Media always goes through the clinic's bridge: no IP addresses exchanged between
+        // participants, and no P2P-to-bridge switch that can leave a sender paused after a reconnect.
+        p2p: { enabled: false },
         enableWelcomePage: false,
         readOnlyName: true,
         subject: 'Video visit',
@@ -56,11 +65,24 @@
       setState('joined', 'You are in the visit');
       report('joined');
     });
+    // Patients and guests always see when the visit is being recorded.
+    api.addListener('recordingStatusChanged', function (event) {
+      if (event.mode && event.mode !== 'file') { return; }
+      window.openvisit.recording = event.on ? 'on' : 'off';
+      recordingBanner.classList.toggle('d-none', !event.on);
+    });
     api.addListener('videoConferenceLeft', function () {
-      report('left');
+      recordingBanner.classList.add('d-none');
       meet.classList.add('d-none');
-      left.classList.remove('d-none');
       setState('left', 'You left');
+      report('left').then(function (result) {
+        if (result.ended) {
+          over.classList.remove('d-none');
+          setState('ended', 'The visit has ended');
+          return;
+        }
+        left.classList.remove('d-none');
+      });
     });
     api.addListener('errorOccurred', function (event) {
       if (event && event.error && event.error.isFatal) {

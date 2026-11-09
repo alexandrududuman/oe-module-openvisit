@@ -3,6 +3,8 @@
 /**
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -10,6 +12,8 @@ declare(strict_types=1);
 
 namespace OpenVisit\OpenEMR\Modules\OpenVisit;
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Config\ModuleConfig;
@@ -19,19 +23,25 @@ use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\ClinicalGateway;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\OpenEmrGateway;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\AppointmentListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\CalendarListener;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\DockListener;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\EncounterListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\GlobalsListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\MenuListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\PortalListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlAttemptStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlParticipantStore;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlRecordingStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlSessionStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlTokenStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\CleanupService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\InviteService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\ParticipantService;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\RecordingFiles;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\RecordingService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\RoomNameGenerator;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\TokenService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\VisitService;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Support\Scalars;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Twig\Environment;
 
@@ -40,6 +50,8 @@ final class Bootstrap
 {
     public const MODULE_DIRECTORY = 'oe-module-openvisit';
     public const MODULE_PATH = '/interface/modules/custom_modules/' . self::MODULE_DIRECTORY;
+    /** Oldest OpenEMR release the install journey passes on; older cores lack APIs the module calls. */
+    public const MIN_OPENEMR = '8.2.0';
 
     private ?ClinicalGateway $gateway = null;
 
@@ -52,6 +64,11 @@ final class Bootstrap
         (new AppointmentListener($this->gateway(...)))->subscribe($this->dispatcher);
         (new PortalListener($this->gateway(...)))->subscribe($this->dispatcher);
         (new CalendarListener($this->gateway(...)))->subscribe($this->dispatcher);
+        (new EncounterListener(fn(int $encounter): string => $this->visitController()->encounterCard(
+            $encounter,
+            Scalars::int(SessionWrapperFactory::getInstance()->getActiveSession()->get('authUserID')),
+        )))->subscribe($this->dispatcher);
+        (new DockListener(fn(): bool => $this->config()->jitsiDomain() !== '' && AclMain::aclCheckCore('patients', 'appt')))->subscribe($this->dispatcher);
     }
 
     public function config(): ModuleConfig
@@ -79,6 +96,18 @@ final class Bootstrap
         return new ParticipantService(new SqlParticipantStore(), $this->gateway());
     }
 
+    public function recordings(): RecordingService
+    {
+        return new RecordingService(new SqlRecordingStore(), new SqlParticipantStore(), new SqlSessionStore(), $this->gateway(), $this->config(), $this->recordingFiles());
+    }
+
+    /** Jibri's inbox from the settings; storage under the site documents folder, which core never serves directly. */
+    public function recordingFiles(): RecordingFiles
+    {
+        $siteDir = OEGlobalsBag::getInstance()->getString('OE_SITE_DIR');
+        return new RecordingFiles($this->config()->recordingsInbox(), $siteDir . '/documents/openvisit/recordings');
+    }
+
     public function cleanup(): CleanupService
     {
         return new CleanupService(new SqlSessionStore(), new SqlTokenStore(), new SqlAttemptStore(), $this->tokens(), $this->gateway());
@@ -94,6 +123,7 @@ final class Bootstrap
             new InviteService($this->tokens(), $this->gateway(), $this->config()),
             $this->tokens(),
             $this->participants(),
+            $this->recordings(),
             $this->twig(),
         );
     }
@@ -107,6 +137,26 @@ final class Bootstrap
     {
         $templates = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'templates';
         return (new TwigContainer($templates, OEGlobalsBag::getInstance()->getKernel()))->getTwig();
+    }
+
+    public static function coreVersion(): string
+    {
+        $bag = OEGlobalsBag::getInstance();
+        $part = static function (string $key) use ($bag): string {
+            $value = $bag->get($key);
+            return is_scalar($value) && (string) $value !== '' ? (string) $value : '0';
+        };
+        return $part('v_major') . '.' . $part('v_minor') . '.' . $part('v_patch');
+    }
+
+    public static function coreSupported(): bool
+    {
+        return version_compare(self::coreVersion(), self::MIN_OPENEMR, '>=');
+    }
+
+    public static function publicPath(): string
+    {
+        return OEGlobalsBag::getInstance()->getWebRoot() . self::MODULE_PATH . '/public';
     }
 
     public static function assetPath(): string

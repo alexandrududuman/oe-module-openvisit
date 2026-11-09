@@ -3,6 +3,8 @@
 /**
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -12,6 +14,7 @@ namespace OpenVisit\OpenEMR\Modules\OpenVisit\Service\SelfCheck;
 
 use OpenVisit\OpenEMR\Modules\OpenVisit\Config\ModuleConfig;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\JitsiJwt;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\RecordingFiles;
 
 /** Tells an administrator, in plain words, what still stands between them and a first video visit. */
 final class SelfCheck
@@ -21,6 +24,7 @@ final class SelfCheck
     public function __construct(
         private readonly ModuleConfig $config,
         private readonly Prober $prober,
+        private readonly ?RecordingFiles $recordingFiles = null,
     ) {}
 
     /** @return list<CheckResult> */
@@ -33,12 +37,19 @@ final class SelfCheck
         } elseif ($domain !== '') {
             $results[] = $this->jitsiReachable($domain);
             $results[] = $this->iframeApi($domain);
-            $results[] = $this->jitsiConfig($domain);
+            $configJs = $this->prober->get("https://{$domain}/config.js");
+            $results[] = $this->jitsiConfig($configJs);
+            if ($this->config->allowRecording()) {
+                $results[] = $this->jitsiRecording($configJs);
+            }
         }
         $results[] = $this->jwt();
         $results[] = $this->publicUrl();
         $results[] = $this->mailer();
         $results[] = $this->background();
+        if ($this->config->allowRecording()) {
+            $results[] = $this->recording();
+        }
         return $results;
     }
 
@@ -96,9 +107,9 @@ final class SelfCheck
         return new CheckResult('iframe', CheckResult::FAIL, xl('Jitsi IFrame API'), xl('external_api.js was not served (status') . ' ' . $response['status'] . ').', xl('The domain must point at a Jitsi Meet web frontend, not only at the video bridge.'));
     }
 
-    private function jitsiConfig(string $domain): CheckResult
+    /** @param array{status: int, body: string, error: string} $response config.js of the Jitsi server */
+    private function jitsiConfig(array $response): CheckResult
     {
-        $response = $this->prober->get("https://{$domain}/config.js");
         if ($response['status'] !== 200) {
             return new CheckResult('jitsi-config', CheckResult::WARN, xl('Jitsi configuration'), xl('config.js was not readable; cannot confirm authentication settings.'));
         }
@@ -109,6 +120,27 @@ final class SelfCheck
             return new CheckResult('jitsi-config', CheckResult::WARN, xl('Jitsi configuration'), xl('The server allows anonymous rooms. Patients could create rooms without a link.'), xl('Set ENABLE_AUTH=1, AUTH_TYPE=jwt and ENABLE_GUESTS=0 on the Jitsi server.'));
         }
         return new CheckResult('jitsi-config', CheckResult::PASS, xl('Jitsi configuration'), xl('Configuration loaded; TURN is handed out by the Jitsi server itself to each participant.'));
+    }
+
+    /** @param array{status: int, body: string, error: string} $response config.js of the Jitsi server */
+    private function jitsiRecording(array $response): CheckResult
+    {
+        if ($response['status'] === 200 && preg_match('/recordingService\s*=\s*\{[^}]*enabled:\s*true/', $response['body']) === 1) {
+            return new CheckResult('jitsi-recording', CheckResult::PASS, xl('Jitsi recording'), xl('The Jitsi server offers recording.'));
+        }
+        return new CheckResult('jitsi-recording', CheckResult::WARN, xl('Jitsi recording'), xl('The Jitsi server does not say it can record.'), xl('Set ENABLE_RECORDING=1 on the Jitsi server and run a Jibri next to it, as in docker/docker-compose.yml.'));
+    }
+
+    private function recording(): CheckResult
+    {
+        $inbox = $this->config->recordingsInbox();
+        if ($this->recordingFiles === null || !$this->recordingFiles->inboxUsable()) {
+            return new CheckResult('recording', CheckResult::FAIL, xl('Recording'), xl('The recordings inbox folder is missing or the web server cannot write to it') . ' (' . $inbox . ').', xl('Share the folder Jibri records into with the OpenEMR server, writable by the web server, or turn recording off.'));
+        }
+        if (!$this->recordingFiles->storageUsable()) {
+            return new CheckResult('recording', CheckResult::FAIL, xl('Recording'), xl('Recordings cannot be stored in the site documents folder.'), xl('Give the web server write access to the documents folder of this site.'));
+        }
+        return new CheckResult('recording', CheckResult::PASS, xl('Recording'), xl('On. Finished recordings are picked up from') . ' ' . $inbox);
     }
 
     private function jwt(): CheckResult

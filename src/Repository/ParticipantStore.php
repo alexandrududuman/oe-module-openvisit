@@ -3,6 +3,8 @@
 /**
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -17,6 +19,9 @@ interface ParticipantStore
     public function joined(int $sessionId, string $role, string $displayName, ?int $tokenId, string $userAgent, string $joinedAt): Participant;
 
     public function left(int $participantId, string $leftAt): void;
+
+    /** Stamps every row of the session that is still open. */
+    public function closeOpen(int $sessionId, string $leftAt): void;
 
     /** @return list<Participant> oldest first */
     public function findBySession(int $sessionId): array;

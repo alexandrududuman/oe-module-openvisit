@@ -98,7 +98,46 @@ form appears on the encounter.
 
 Done when: a clinic runs it in production for real visits.
 
+## Phase 5b: live calls and installing from scratch
+
+- Live call journey: provider, phone patient and guest in one visit for a configurable time,
+  media checked on every side, a dropped patient re-admitted
+- End visit closes the call for everyone; only the provider is a Jitsi moderator
+- Install journey on a pristine OpenEMR: copy, Composer, upgrade from 0.5.0; Module Manager,
+  settings, setup check, first patient, first visit; schema and SQL version checked
+- Supported OpenEMR range from what that journey passes on; older cores leave the module dormant
+
+Done when: the install journey passes on the oldest supported release, 8.5.0 and the next
+OpenEMR release, an unsupported core keeps working with the module present, and the live call
+journey passes against the public reference stack.
+
+## Phase 6: recording (v0.6.0)
+
+Pulled forward from after 1.0.
+
+- Jibri in the reference and CI stacks, finalize script that hands files to OpenEMR
+- Record button for the provider, enabled with at least two people in the call, consent
+  confirmation, banner for patient and guests, automatic stop below two people and on End visit
+- Server-side rule and audit, `openvisit_recording` table, import into the site documents folder
+- Player with range streaming from Visit history, same access rule as the visit
+- Setup check for the Jitsi recording service and the inbox
+
+Done when: the recording journey records twice against a Jitsi with Jibri, one stopped by the
+provider and one by the patient leaving, and both play back from Visit history.
+
+## Phase 7: the visit floats over OpenEMR
+
+- Floating window on OpenEMR's main page, loaded through `ScriptFilterEvent` and
+  `StyleFilterEvent`; Jitsi still runs only inside the module's own room page, framed by it
+- Full and corner modes, drag, mute, camera, admit from the lobby, leave, open in a tab
+- Floating recording player, preview frames from Jibri, video visit card on the encounter page
+
+Done when: a journey starts a visit, moves to the calendar while the call shrinks into the
+corner, admits the patient from the small window, mutes from it and rejoins after a new login;
+the recording journey plays a file in the floating player while the provider works elsewhere
+and finds both recordings on the encounter page.
+
 ## After 1.0
 
-Recording with consent (Jibri), SMS invitations through the Fax/SMS module, REST endpoints,
+SMS invitations through the Fax/SMS module, REST endpoints,
 billing helpers, a hosted Jitsi option for clinics that do not want to run their own server.

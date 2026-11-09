@@ -1,3 +1,4 @@
+{# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later. #}
 <!DOCTYPE html>
 <html>
 <head>
@@ -13,6 +14,12 @@
         {% if encounter %}<span class="text-muted ml-2">{{ 'Encounter'|xlt }} #{{ encounter|text }}</span>{% endif %}
     </div>
     <div class="openvisit-bar__status" id="openvisit-status" data-state="loading">{{ 'Connecting to the video server'|xlt }}&hellip;</div>
+    {% if recordingEnabled %}
+    <span class="openvisit-rec d-none mr-2" id="openvisit-rec-indicator"><i class="fa fa-circle mr-1" aria-hidden="true"></i>{{ 'Recording'|xlt }}</span>
+    <button type="button" class="btn btn-light btn-sm mr-2" id="openvisit-record" disabled title="{{ 'Recording needs at least two people in the call'|xla }}">
+        <i class="fa fa-circle text-danger mr-1" aria-hidden="true"></i><span id="openvisit-record-label">{{ 'Record'|xlt }}</span>
+    </button>
+    {% endif %}
     <button type="button" class="btn btn-light btn-sm mr-2" id="openvisit-invite-toggle">
         <i class="fa fa-user-plus mr-1" aria-hidden="true"></i>{{ 'Invite'|xlt }}
     </button>
@@ -20,6 +27,14 @@
         <i class="fa fa-phone-slash mr-1" aria-hidden="true"></i>{{ 'End visit'|xlt }}
     </button>
 </header>
+{% if recordingEnabled %}
+<div class="openvisit-consent d-none" id="openvisit-consent" role="alertdialog" aria-labelledby="openvisit-consent-text">
+    <span id="openvisit-consent-text">{{ 'Everyone in the call is told that the visit is being recorded. Start only if the patient agreed.'|xlt }}</span>
+    <button type="button" class="btn btn-danger btn-sm" id="openvisit-consent-yes">{{ 'Patient agreed, start recording'|xlt }}</button>
+    <button type="button" class="btn btn-secondary btn-sm" id="openvisit-consent-no">{{ 'Cancel'|xlt }}</button>
+</div>
+<div class="openvisit-record-message d-none" id="openvisit-record-message" role="status"></div>
+{% endif %}
 <div class="openvisit-body">
     <main id="openvisit-meet"></main>
     <aside class="openvisit-invite d-none" id="openvisit-invite" aria-label="{{ 'Invite participants'|xla }}">

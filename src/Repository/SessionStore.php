@@ -3,6 +3,8 @@
 /**
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -17,6 +19,10 @@ interface SessionStore
     public function findById(int $id): ?Visit;
 
     public function findByAppointment(int $eid): ?Visit;
+
+    public function findByRoom(string $roomName): ?Visit;
+
+    public function findByEncounter(int $encounter): ?Visit;
 
     public function create(int $eid, int $providerId, string $roomName): Visit;
 

@@ -6,6 +6,56 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+- End visit now closes the Jitsi call for everyone. Before, patient and guests stayed connected
+  to each other after the provider left; now they see that the clinic ended the visit, and every
+  open participant row is closed.
+- Patients and guests no longer become Jitsi moderators. The reference stack and the documented
+  Jitsi settings turn off jicofo's own JWT authentication and auto-owner, so only the provider's
+  token carries the role.
+- A provider who reloads the room or rejoins after closing the tab goes straight back in, even
+  with the lobby on. A small prosody plugin, `docker/prosody/mod_openvisit_lobby_bypass.lua`,
+  lets the moderator claim of the provider's token pass the lobby; patients and guests still
+  wait to be admitted.
+- `composer require` works on any OpenEMR. The package declared a conflict with OpenEMR below
+  8.5.0, which Composer applied to installations without version metadata, such as the official
+  docker image, and refused the install.
+- Core now records the module's SQL version, so the Module Manager offers schema upgrades. The
+  schema moved from `sql/table.sql` to `sql/install.sql`; existing installs get an Install SQL
+  button that is safe to run.
+- A three-way call keeps flowing when one person drops and comes back. Jitsi's peer-to-peer
+  mode is off in the room, so media always goes through the clinic's bridge; before, the switch
+  from peer-to-peer back to the bridge could leave the provider and a guest sending nothing.
+
+### Changed
+- Schema 0.6.0: `openvisit_recording` table, applied by `sql/0_5_0-to-0_6_0_upgrade.sql`.
+- Supported OpenEMR: 8.2.0 or newer. On an older release the module stays inactive
+  instead of breaking core pages, and its setup check says which version it needs.
+
+### Added
+- The visit floats over OpenEMR. Start or Rejoin opens the room in a window on OpenEMR's main
+  page instead of a browser tab; it can be dragged, and it tucks into a corner as a small window
+  when the provider moves elsewhere in OpenEMR, like Google Meet's picture in picture. The small
+  window keeps the microphone, camera, expand and leave controls, names whoever is waiting in the
+  lobby with an Admit button, and its rim shows the state: connected, someone waiting, recording.
+  The window can also be opened as a browser tab.
+- Recordings play in a floating player that keeps playing on top while the provider works.
+  Each recording gets a preview frame, and the encounter page shows the video visit with its
+  times, the people who joined and the recordings.
+- Recording. With Allow recording on and a Jibri next to Jitsi, the provider records once at
+  least two people are in the call, after confirming the patient agreed. Patients and guests see
+  a banner while it runs. It stops by hand, by itself when fewer than two people remain, and
+  before End visit. Files are filed into the site documents folder and play from Visit history,
+  streamed with seeking, for the appointment's provider and administrators; each viewing is
+  logged. The setup check covers the Jitsi recording service and the inbox folder.
+- Reference stack: optional `jitsi-jibri` service (`COMPOSE_PROFILES=recording`) sharing a
+  `recordings` volume with OpenEMR, and `docker/jibri/finalize.sh`.
+- Install journey on a pristine OpenEMR: copy, Composer and upgrade from 0.5.0, through the
+  Module Manager, settings, setup check, a first patient and a first visit. Runs in CI on 8.5.0,
+  the next OpenEMR release, the oldest supported release, and 8.0.0 as an unsupported core.
+- Live call journey: provider, phone patient and guest stay in one visit while audio and video
+  are checked on every side; one patient reload and re-admission included.
+
 ## [0.5.0] - 2026-11-09
 
 Hardening after an independent security review, and the reference stack proven on a public

@@ -1,0 +1,85 @@
+/* Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later. */
+/* The video visit on the encounter page and recording previews, in OpenEMR's light pages. */
+@font-face { font-family: "OpenVisit Atkinson"; font-weight: 400; font-display: swap; src: url("../fonts/atkinson-hyperlegible-400.woff2") format("woff2"); }
+@font-face { font-family: "OpenVisit Atkinson"; font-weight: 700; font-display: swap; src: url("../fonts/atkinson-hyperlegible-700.woff2") format("woff2"); }
+
+.ovr-visit {
+  --ovr-ink: #1f2c36;
+  --ovr-quiet: #4a5b67;
+  --ovr-line: #d5dee5;
+  --ovr-brand: #2e7fa8;
+  --ovr-live: #2fa37a;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  align-items: center;
+  margin: 0 0 16px;
+  padding: 16px 20px;
+  color: var(--ovr-ink);
+  font-family: "OpenVisit Atkinson", "Atkinson Hyperlegible", sans-serif;
+  background: #fff;
+  border: 1px solid var(--ovr-line);
+  border-left: 4px solid var(--ovr-brand);
+  border-radius: 10px;
+}
+.ovr-visit[data-status="active"] { border-left-color: var(--ovr-live); }
+.ovr-visit__facts { flex: 1 1 240px; min-width: 0; }
+.ovr-visit__title { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.3; }
+.ovr-visit__line { margin: 4px 0 0; color: var(--ovr-quiet); font-size: 15px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+
+.ovr-thumbs { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.ovr-thumb {
+  position: relative;
+  display: block;
+  width: 176px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  color: #fff;
+  font-family: "OpenVisit Atkinson", "Atkinson Hyperlegible", sans-serif;
+  text-decoration: none;
+  background: #1f2c36;
+  border-radius: 8px;
+}
+.ovr-thumb:hover, .ovr-thumb:focus { color: #fff; text-decoration: none; }
+.ovr-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .25s ease-out; }
+.ovr-thumb:hover img { transform: scale(1.04); }
+.ovr-thumb:focus-visible { outline: 3px solid var(--ovr-brand, #2e7fa8); outline-offset: 2px; }
+.ovr-thumb__play {
+  position: absolute;
+  inset: 0;
+  width: 44px;
+  height: 44px;
+  margin: auto;
+  background: rgba(31, 44, 54, .78);
+  border-radius: 50%;
+  transition: background-color .15s;
+}
+.ovr-thumb__play::after {
+  position: absolute;
+  top: 50%;
+  left: 54%;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 13px solid #fff;
+  transform: translate(-50%, -50%);
+  content: "";
+}
+.ovr-thumb:hover .ovr-thumb__play, .ovr-thumb:focus-visible .ovr-thumb__play { background: #2e7fa8; }
+.ovr-thumb__tag {
+  position: absolute;
+  bottom: 6px;
+  padding: 1px 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  background: rgba(13, 20, 25, .82);
+  border-radius: 4px;
+}
+.ovr-thumb__tag--start { left: 6px; }
+.ovr-thumb__tag--end { right: 6px; }
+.ovr-thumb--pending { display: grid; place-items: center; color: #4a5b67; font-size: 14px; background: #eef2f5; border: 1px dashed #b6c3cc; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ovr-thumb img, .ovr-thumb__play { transition: none; }
+  .ovr-thumb:hover img { transform: none; }
+}

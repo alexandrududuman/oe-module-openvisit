@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 name: CI
 
 on:
@@ -63,6 +64,9 @@ jobs:
       OPENEMR_HTTP_PORT: '8300'
       JITSI_HTTPS_PORT: '8443'
       JITSI_JWT_SECRET: openvisit-e2e-secret-change-me-0123456789abcdef
+      # The recording journey passes against the reference stack; on hosted runners Jibri starts
+      # but the room does not see it in time yet, so it runs there only for now.
+      RECORDING: '0'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -77,12 +81,59 @@ jobs:
         run: npm run e2e:stack
       - name: Stack logs on failure
         if: failure()
-        run: docker compose -f tests/e2e/stack/docker-compose.yml logs --tail 200
+        run: |
+          mkdir -p tests/e2e/results/stack-logs
+          for service in $(docker compose -f tests/e2e/stack/docker-compose.yml ps --services); do
+            docker compose -f tests/e2e/stack/docker-compose.yml logs --no-color --timestamps "$service" > "tests/e2e/results/stack-logs/$service.log" 2>&1 || true
+          done
+          docker compose -f tests/e2e/stack/docker-compose.yml logs --tail 200
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: e2e-results
+          name: e2e-results-journeys
           path: |
             tests/e2e/results
             tests/e2e/report
+          retention-days: 7
+
+  install:
+    name: Install on OpenEMR ${{ matrix.openemr }} (${{ matrix.method }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { openemr: '8.5.0', method: copy }
+          - { openemr: '8.5.0', method: composer }
+          - { openemr: '8.5.0', method: upgrade }
+          - { openemr: next, method: copy }
+          - { openemr: '8.2.0', method: copy }
+          - { openemr: '8.0.0', method: copy, unsupported: '1' }
+    env:
+      OPENEMR_TAG: ${{ matrix.openemr }}
+      EXPECT_UNSUPPORTED: ${{ matrix.unsupported || '0' }}
+      JITSI_DOMAIN: localhost:8443
+      JITSI_JWT_SECRET: openvisit-e2e-secret-change-me-0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Start Jitsi
+        run: |
+          docker compose -f tests/e2e/stack/docker-compose.yml up -d jitsi-web jitsi-prosody jitsi-jicofo jitsi-jvb
+          for i in $(seq 1 60); do curl -skf -o /dev/null https://localhost:8443/external_api.js && break; sleep 5; done
+      - name: Install on a pristine OpenEMR and run a first visit
+        run: tests/e2e/install/run.sh ${{ matrix.method }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-results-install-${{ matrix.openemr }}-${{ matrix.method }}
+          path: tests/e2e/results
           retention-days: 7

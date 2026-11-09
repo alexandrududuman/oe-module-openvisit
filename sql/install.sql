@@ -79,3 +79,21 @@ CREATE TABLE IF NOT EXISTS `openvisit_join_attempt` (
 INSERT INTO `background_services` (`name`, `title`, `active`, `running`, `next_run`, `execute_interval`, `function`, `require_once`, `sort_order`)
 VALUES ('OpenVisitCleanup', 'OpenVisit: close abandoned visits and purge old links', '0', '0', CURRENT_TIMESTAMP, '60', 'openvisit_background_cleanup', '/interface/modules/custom_modules/oe-module-openvisit/background/cleanup.php', '100');
 #EndIf
+
+#IfNotTable openvisit_recording
+CREATE TABLE IF NOT EXISTS `openvisit_recording` (
+    `id`               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `session_id`       BIGINT UNSIGNED NOT NULL COMMENT 'openvisit_session.id',
+    `status`           ENUM('starting', 'recording', 'processing', 'ready', 'failed') NOT NULL DEFAULT 'starting',
+    `started_by`       BIGINT UNSIGNED NOT NULL COMMENT 'users.id who confirmed consent and started it',
+    `started_at`       DATETIME        NULL,
+    `stopped_at`       DATETIME        NULL,
+    `file_path`        VARCHAR(255)    NULL     COMMENT 'relative to the recordings storage folder',
+    `file_size`        BIGINT UNSIGNED NULL,
+    `duration_seconds` INT UNSIGNED    NULL,
+    `created_at`       DATETIME        NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY `ix_openvisit_recording_session` (`session_id`),
+    KEY `ix_openvisit_recording_status` (`status`)
+) ENGINE=InnoDB COMMENT='OpenVisit: call recordings made by Jibri';
+#EndIf

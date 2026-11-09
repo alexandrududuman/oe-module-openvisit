@@ -2,6 +2,9 @@
 
 /**
  * Minimal stand-ins for OpenEMR globals so unit tests run without a core checkout.
+ *
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  */
 
 declare(strict_types=1);

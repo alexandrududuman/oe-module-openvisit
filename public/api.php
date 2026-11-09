@@ -5,6 +5,8 @@
  *
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @author    Alexandru Duduman <alexandru@thepenguindeveloper.com>
+ * @copyright Copyright (c) 2026 Alexandru Duduman <alexandru@thepenguindeveloper.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
  */
 
@@ -62,6 +64,10 @@ if (str_starts_with($action, 'invite.')) {
 }
 if ($action === 'patient.search' || $action === 'visit.adhoc') {
     $result = $controller->adhoc($action, (string) $request->request->get('q', ''), $request->request->getInt('pid'), $userId);
+    $respond($result, ($result['ok'] ?? false) === true ? 200 : 400);
+}
+if (str_starts_with($action, 'recording.')) {
+    $result = $controller->recording($action, $request->request->getInt('session_id'), $request->request->getInt('recording_id'), $userId);
     $respond($result, ($result['ok'] ?? false) === true ? 200 : 400);
 }
 if (str_starts_with($action, 'participant.')) {

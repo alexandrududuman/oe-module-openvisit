@@ -1,4 +1,5 @@
 // @ts-check
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 const { defineConfig } = require('@playwright/test');
 
 // Targets the OpenEMR development-easy-light stack by default.

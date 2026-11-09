@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Provider room: loads the Jitsi IFrame API from the clinic's own server and drives the visit.
 (function () {
   'use strict';
@@ -8,10 +9,21 @@
   const meet = document.getElementById('openvisit-meet');
   const ended = document.getElementById('openvisit-ended');
   const endedDetail = document.getElementById('openvisit-ended-detail');
+  const CLOSE_TIMEOUT_MS = 5000;
+  const recording = config.recording || { enabled: false, minPeople: 2 };
+  const params = new URLSearchParams(window.location.search);
+  // Inside OpenEMR's floating window the room reports to it and takes its commands.
+  const docked = params.has('dock') && window.parent !== window;
+  const knocking = [];
+  let audioMuted = false;
+  let videoMuted = false;
   let api = null;
 
   // Exposed for tests and support: state is loading | joined | left | ended | error.
-  window.openvisit = { state: 'loading', config: { room: config.room, domain: config.domain } };
+  window.openvisit = { state: 'loading', docked: docked, config: { room: config.room, domain: config.domain } };
+  if (docked) {
+    document.body.classList.add('openvisit-docked');
+  }
 
   function setState(state, text) {
     window.openvisit.state = state;
@@ -19,7 +31,55 @@
     if (text) {
       status.textContent = text;
     }
+    tellDock();
   }
+
+  function tellDock() {
+    if (!docked) { return; }
+    window.parent.postMessage({
+      openvisit: 'room',
+      type: 'status',
+      state: window.openvisit.state === 'loading' ? 'connecting' : window.openvisit.state,
+      title: config.patientName,
+      audioMuted: audioMuted,
+      videoMuted: videoMuted,
+      recording: window.openvisit.recording === 'on',
+      knocking: knocking.slice(),
+    }, window.location.origin);
+  }
+
+  function forgetKnock(id, name) {
+    for (let i = knocking.length - 1; i >= 0; i--) {
+      if (knocking[i].id === id || (name && knocking[i].name === name)) { knocking.splice(i, 1); }
+    }
+  }
+
+  window.addEventListener('message', function (event) {
+    const data = event.data;
+    if (!docked || event.origin !== window.location.origin || event.source !== window.parent || !data || data.openvisit !== 'dock') {
+      return;
+    }
+    switch (data.command) {
+      case 'toggleAudio':
+        if (api) { api.executeCommand('toggleAudio'); }
+        break;
+      case 'toggleVideo':
+        if (api) { api.executeCommand('toggleVideo'); }
+        break;
+      case 'admit':
+        if (api) { api.executeCommand('answerKnockingParticipant', data.id, true); }
+        forgetKnock(data.id);
+        tellDock();
+        break;
+      case 'leave':
+        if (api && window.openvisit.state === 'joined') { api.executeCommand('hangup'); }
+        break;
+      case 'mode':
+        document.body.classList.toggle('openvisit-mini', data.mode === 'mini');
+        if (data.mode === 'mini' && window.openvisit.recording === 'confirming') { recordingState('off'); }
+        break;
+    }
+  });
 
   function loadApi() {
     return new Promise(function (resolve, reject) {
@@ -44,6 +104,9 @@
       configOverwrite: {
         prejoinConfig: { enabled: true },
         disableDeepLinking: true,
+        // Media always goes through the clinic's bridge: no IP addresses exchanged between
+        // participants, and no P2P-to-bridge switch that can leave a sender paused after a reconnect.
+        p2p: { enabled: false },
         startWithAudioMuted: false,
         startWithVideoMuted: false,
         enableWelcomePage: false,
@@ -65,9 +128,31 @@
         api.executeCommand('subject', config.subject);
       }
       reportProvider('participant.joined');
+      countPeople();
+    });
+    if (recording.enabled) {
+      api.addListener('participantJoined', countPeople);
+      api.addListener('participantLeft', countPeople);
+      api.addListener('recordingStatusChanged', onRecordingStatus);
+    }
+    api.addListener('audioMuteStatusChanged', function (event) { audioMuted = Boolean(event.muted); tellDock(); });
+    api.addListener('videoMuteStatusChanged', function (event) { videoMuted = Boolean(event.muted); tellDock(); });
+    api.addListener('knockingParticipant', function (event) {
+      const p = event && event.participant;
+      if (!p) { return; }
+      forgetKnock(p.id);
+      knocking.push({ id: p.id, name: p.name || 'Someone' });
+      tellDock();
+    });
+    api.addListener('participantJoined', function (event) {
+      forgetKnock(event.id, event.displayName);
+      tellDock();
     });
     api.addListener('videoConferenceLeft', function () {
       reportProvider('participant.left');
+      if (window.openvisit.recording !== 'off') {
+        recordingState('off');
+      }
       if (window.openvisit.state !== 'ended') {
         setState('left', 'You left the room. Rejoin by reloading this page, or end the visit.');
       }
@@ -79,15 +164,32 @@
     });
   }
 
+  // Closes the Jitsi conference for everyone, so patient and guests are not left talking to each other.
+  function closeConference() {
+    return new Promise(function (resolve) {
+      if (!api || window.openvisit.state !== 'joined') {
+        resolve();
+        return;
+      }
+      const timer = setTimeout(resolve, CLOSE_TIMEOUT_MS);
+      api.addListener('videoConferenceLeft', function () { clearTimeout(timer); resolve(); });
+      api.executeCommand('endConference');
+    });
+  }
+
   function endVisit() {
     endButton.disabled = true;
     const body = new URLSearchParams({ action: 'end', session_id: String(config.sessionId), csrf_token_form: config.csrf });
-    fetch(config.endUrl, { method: 'POST', body: body, credentials: 'same-origin' })
+    stopRecordingBeforeEnd()
+      .then(function () { return fetch(config.endUrl, { method: 'POST', body: body, credentials: 'same-origin' }); })
       .then(function (response) { return response.json(); })
       .then(function (result) {
         if (!result.ok) {
           throw new Error(result.error || 'Could not end the visit');
         }
+        return closeConference().then(function () { return result; });
+      })
+      .then(function (result) {
         if (api) {
           api.executeCommand('hangup');
           api.dispose();
@@ -217,6 +319,193 @@
     return post({ action: action, participant_id: String(participantId || 0), display_name: config.displayName })
       .then(function (result) { if (result.participantId) { participantId = result.participantId; } })
       .catch(function () {});
+  }
+
+  // ----- Recording: the provider records once at least two people are in the call -----
+  const RECORDING_START_TIMEOUT_MS = 60000;
+  const RECORDING_POLL_MS = 5000;
+  const RECORDING_POLL_LIMIT = 120;
+  const recordButton = document.getElementById('openvisit-record');
+  const recordLabel = document.getElementById('openvisit-record-label');
+  const recordIndicator = document.getElementById('openvisit-rec-indicator');
+  const consent = document.getElementById('openvisit-consent');
+  const recordMessage = document.getElementById('openvisit-record-message');
+  let recordingId = null;
+  let startTimer = null;
+  let stopNote = '';
+  // recording is off | confirming | starting | on | stopping; stopReason is manual | people | ended.
+  window.openvisit.recording = 'off';
+  window.openvisit.people = 0;
+  window.openvisit.recordings = [];
+
+  function recordingState(state) {
+    window.openvisit.recording = state;
+    renderRecording();
+    tellDock();
+  }
+
+  function renderRecording() {
+    if (!recordButton) { return; }
+    const state = window.openvisit.recording;
+    const enough = window.openvisit.people >= recording.minPeople;
+    recordButton.disabled = !(state === 'on' || (state === 'off' && enough && window.openvisit.state === 'joined'));
+    recordButton.title = enough || state === 'on' ? '' : 'Recording needs at least two people in the call';
+    recordLabel.textContent = { on: 'Stop recording', starting: 'Starting…', stopping: 'Stopping…' }[state] || 'Record';
+    recordIndicator.classList.toggle('d-none', state !== 'on');
+    consent.classList.toggle('d-none', state !== 'confirming');
+  }
+
+  function recordingNote(text, isError) {
+    recordMessage.textContent = text;
+    recordMessage.classList.toggle('error', Boolean(isError));
+    recordMessage.classList.toggle('d-none', text === '');
+  }
+
+  function countPeople() {
+    if (!api || !recording.enabled) { return; }
+    window.openvisit.people = api.getNumberOfParticipants();
+    const enough = window.openvisit.people >= recording.minPeople;
+    if (!enough && window.openvisit.recording === 'on') {
+      stopRecording('people', 'Recording stopped: fewer than two people are in the call.');
+    }
+    if (!enough && window.openvisit.recording === 'confirming') {
+      recordingState('off');
+    }
+    renderRecording();
+  }
+
+  function startRecording() {
+    recordingState('starting');
+    recordingNote('');
+    post({ action: 'recording.start' })
+      .then(function (result) {
+        recordingId = result.recording.id;
+        startTimer = setTimeout(function () {
+          recordingFailed('The recorder did not start. Ask your administrator to check the Jibri service.');
+        }, RECORDING_START_TIMEOUT_MS);
+        api.executeCommand('startRecording', { mode: 'file' });
+      })
+      .catch(function (e) {
+        recordingState('off');
+        recordingNote(e.message, true);
+      });
+  }
+
+  function stopRecording(reason, note) {
+    if (window.openvisit.recording !== 'on') { return; }
+    window.openvisit.stopReason = reason;
+    stopNote = note;
+    recordingState('stopping');
+    recordingNote(note);
+    api.executeCommand('stopRecording', 'file');
+  }
+
+  function recordingFailed(text) {
+    clearTimeout(startTimer);
+    if (recordingId !== null) {
+      post({ action: 'recording.failed', recording_id: String(recordingId) }).catch(function () {});
+    }
+    recordingId = null;
+    recordingState('off');
+    recordingNote(text, true);
+  }
+
+  const RECORDER_ERRORS = {
+    busy: 'The recorder is busy with another visit. Try again in a few minutes.',
+    'resource-constraint': 'The recorder is busy with another visit. Try again in a few minutes.',
+    'service-unavailable': 'No recorder is available. Ask your administrator to check the Jibri service.',
+  };
+
+  // After a reload the room may already be recording; pick that recording up again.
+  function adoptRunningRecording() {
+    post({ action: 'recording.list' })
+      .then(function (result) {
+        const live = result.recordings.filter(function (r) { return r.status === 'starting' || r.status === 'recording'; }).pop();
+        if (live && window.openvisit.recording === 'off') {
+          recordingId = live.id;
+          recordingState('on');
+        }
+      })
+      .catch(function () {});
+  }
+
+  function onRecordingStatus(event) {
+    if (event.mode && event.mode !== 'file') { return; }
+    const state = window.openvisit.recording;
+    if (event.on && state === 'off') {
+      adoptRunningRecording();
+      return;
+    }
+    if (event.on && state === 'starting') {
+      clearTimeout(startTimer);
+      recordingState('on');
+      post({ action: 'recording.started', recording_id: String(recordingId) }).catch(function () {});
+      return;
+    }
+    if (!event.on && state === 'starting' && event.error) {
+      recordingFailed(RECORDER_ERRORS[event.error] || 'The recording could not start (' + event.error + ').');
+      return;
+    }
+    if (!event.on && (state === 'on' || state === 'stopping')) {
+      const id = recordingId;
+      recordingId = null;
+      if (state === 'on') {
+        window.openvisit.stopReason = 'manual';
+        stopNote = 'Recording stopped.';
+      }
+      recordingState('off');
+      recordingNote(stopNote + ' Saving it…');
+      post({ action: 'recording.stopped', recording_id: String(id) })
+        .then(function () { waitUntilSaved(id, 0); })
+        .catch(function () {});
+    }
+  }
+
+  // Jibri finalizes the file after the stop; the server files it and the room says so.
+  function waitUntilSaved(id, attempt) {
+    post({ action: 'recording.list' })
+      .then(function (result) {
+        window.openvisit.recordings = result.recordings;
+        const saved = result.recordings.filter(function (r) { return r.id === id; })[0];
+        if (saved && saved.status === 'ready') {
+          recordingNote(stopNote + ' Saved: watch it from Visit history.');
+          return;
+        }
+        if (saved && saved.status === 'failed') {
+          recordingNote('The recording could not be saved.', true);
+          return;
+        }
+        if (attempt < RECORDING_POLL_LIMIT) {
+          setTimeout(function () { waitUntilSaved(id, attempt + 1); }, RECORDING_POLL_MS);
+        }
+      })
+      .catch(function () {});
+  }
+
+  function stopRecordingBeforeEnd() {
+    const state = window.openvisit.recording;
+    if (!api || recordingId === null || (state !== 'on' && state !== 'starting')) {
+      return Promise.resolve();
+    }
+    const id = recordingId;
+    recordingId = null;
+    clearTimeout(startTimer);
+    window.openvisit.stopReason = 'ended';
+    recordingState('off');
+    api.executeCommand('stopRecording', 'file');
+    return post({ action: 'recording.stopped', recording_id: String(id) }).catch(function () {});
+  }
+
+  if (recordButton) {
+    recordButton.addEventListener('click', function () {
+      if (window.openvisit.recording === 'on') {
+        stopRecording('manual', 'Recording stopped.');
+        return;
+      }
+      recordingState('confirming');
+    });
+    document.getElementById('openvisit-consent-yes').addEventListener('click', startRecording);
+    document.getElementById('openvisit-consent-no').addEventListener('click', function () { recordingState('off'); });
   }
 
   loadApi().then(join).catch(function (error) {
