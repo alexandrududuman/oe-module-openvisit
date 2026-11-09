@@ -32,6 +32,7 @@ final class Settings
     public const ATTACH_VISIT_FORM = 'openvisit_attach_visit_form';
     public const SHOW_PATIENT_LAST_INITIAL = 'openvisit_show_patient_last_initial';
     public const CALENDAR_CATEGORY = 'openvisit_calendar_category';
+    public const TRUSTED_PROXIES = 'openvisit_trusted_proxies';
 
     /**
      * Labels and descriptions are English source strings; callers translate them.
@@ -64,6 +65,12 @@ final class Settings
                 'type' => GlobalSetting::DATA_TYPE_DEFAULT_VISIT_CATEGORY,
                 'default' => '',
                 'description' => 'Appointments in this category get the Start video visit button. Leave empty to use the Telehealth Visit category installed by the module.',
+            ],
+            self::TRUSTED_PROXIES => [
+                'label' => 'Trusted proxy addresses',
+                'type' => GlobalSetting::DATA_TYPE_TEXT,
+                'default' => '',
+                'description' => 'Comma-separated IPs or CIDR ranges of the reverse proxy in front of OpenEMR, so the join page sees real patient addresses for rate limiting. Leave empty without a proxy.',
             ],
             self::JOIN_BEFORE_MINUTES => [
                 'label' => 'Join window before appointment (minutes)',
