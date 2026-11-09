@@ -1,0 +1,8 @@
+/* Telehealth appointments in the staff calendar get a camera icon in front of the time. */
+.openvisit_telehealth .event_time::before,
+.openvisit_telehealth a.event_time::before {
+    content: "\f03d";
+    font-family: "Font Awesome 5 Free", "Font Awesome 6 Free", FontAwesome;
+    font-weight: 900;
+    margin-right: .25rem;
+}

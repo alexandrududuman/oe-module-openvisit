@@ -18,6 +18,7 @@ use OpenVisit\OpenEMR\Modules\OpenVisit\Controller\VisitController;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\ClinicalGateway;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\OpenEmrGateway;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\AppointmentListener;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\CalendarListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\GlobalsListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\MenuListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\PortalListener;
@@ -50,6 +51,7 @@ final class Bootstrap
         (new MenuListener())->subscribe($this->dispatcher);
         (new AppointmentListener($this->gateway(...)))->subscribe($this->dispatcher);
         (new PortalListener($this->gateway(...)))->subscribe($this->dispatcher);
+        (new CalendarListener($this->gateway(...)))->subscribe($this->dispatcher);
     }
 
     public function config(): ModuleConfig
