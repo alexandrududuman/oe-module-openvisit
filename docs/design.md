@@ -115,7 +115,7 @@ All integration is through events and core services. No core file is modified.
 | Encounter creation | No "encounter created" event in core | Call `AppointmentService::createEncounterForAppointment` when the provider joins, if the appointment has no encounter yet. Record start and end on the session, update the encounter on end. |
 | Calendar decoration | `CalendarUserGetEventsFilter` | Add a camera icon to telehealth events. |
 | Settings | `GlobalsInitializedEvent`, `GlobalsService::createSection` | Section "OpenVisit". Secret stored with `DATA_TYPE_ENCRYPTED`. |
-| Menu entry | `MenuEvent::MENU_UPDATE` | Under Modules: "OpenVisit sessions" (today's sessions, audit) guarded by the module ACO. |
+| Menu entry | `MenuEvent::MENU_UPDATE` | Top-level "Telehealth" right after Calendar, visible to anyone with `patients/appt`. The core Modules menu is hidden from clinicians, so nothing user-facing goes under it. |
 | Portal Join button | `PatientPortal\AppointmentFilterEvent` plus Twig override of `portal/appointment-item.html.twig` via `TwigEnvironmentEvent` `prependPath` | The filter alone cannot add a link; the template only prints four fields. |
 | Portal page assets | `fireEvent` hooks `home.scripts.render.pre`, `home.dashboard.render.scripts` | Listeners receive a `GenericEvent`. |
 | Scripts on core pages | `ScriptFilterEvent` only accepts local files under `interface/modules` | The Jitsi IFrame API is loaded only on module-owned pages, from the clinic's Jitsi server. Never injected into core pages. |
@@ -235,8 +235,11 @@ configured. Each check reports pass or fail with a one-line fix.
   container.
 - GitHub Actions on every PR: PHPStan, PHPUnit, `composer audit`, PHP-CS-Fixer with the PSR-12
   ruleset.
-- Manual E2E checklist per release: provider join, patient join on a phone, lobby admit, guest
-  join, end visit, encounter duration.
+- Browser journeys in `tests/e2e/` (Playwright) drive the real OpenEMR UI as each role would:
+  menus, forms, dialogs, portal. Every phase adds its journey and all of them must pass on the
+  dev stack before a phase is done. They are the acceptance test; HTTP checks are not enough.
+- Manual checklist per release on real devices: patient join on an Android and an iOS phone,
+  audio and video quality, lobby admit, end visit.
 
 ## Release process
 

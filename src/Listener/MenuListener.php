@@ -16,20 +16,24 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final class MenuListener
 {
-    private const PARENT_MENU_ID = 'modimg';
+    private const AFTER_MENU_ID = 'cal0';
 
     public function subscribe(EventDispatcherInterface $dispatcher): void
     {
         $dispatcher->addListener(MenuEvent::MENU_UPDATE, $this->onMenuUpdate(...));
     }
 
+    /**
+     * Adds a top-level "Telehealth" entry right after Calendar. The core "Modules"
+     * menu is hidden from clinicians, so a child entry there would never be seen.
+     */
     public function onMenuUpdate(MenuEvent $event): void
     {
         $item = new \stdClass();
         $item->requirement = 0;
         $item->target = 'ovs';
         $item->menu_id = 'openvisit0';
-        $item->label = xlt('OpenVisit');
+        $item->label = xlt('Telehealth');
         $item->url = Bootstrap::MODULE_PATH . '/public/index.php';
         $item->children = [];
         $item->acl_req = ['patients', 'appt'];
@@ -39,18 +43,14 @@ final class MenuListener
         if (!is_array($menu)) {
             return;
         }
-        foreach ($menu as $entry) {
-            if (!$entry instanceof \stdClass || ($entry->menu_id ?? '') !== self::PARENT_MENU_ID) {
-                continue;
+        $position = count($menu);
+        foreach (array_values($menu) as $index => $entry) {
+            if ($entry instanceof \stdClass && ($entry->menu_id ?? '') === self::AFTER_MENU_ID) {
+                $position = $index + 1;
+                break;
             }
-            $children = is_array($entry->children ?? null) ? $entry->children : [];
-            $children[] = $item;
-            $entry->children = $children;
-            $event->setMenu($menu);
-            return;
         }
-
-        $menu[] = $item;
+        array_splice($menu, $position, 0, [$item]);
         $event->setMenu($menu);
     }
 }
