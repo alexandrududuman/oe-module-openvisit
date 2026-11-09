@@ -81,6 +81,12 @@ final class SqlSessionStore implements SessionStore
         return $visits;
     }
 
+    public function findActive(): array
+    {
+        $rows = QueryUtils::fetchRecords('SELECT ' . self::COLUMNS . ' FROM openvisit_session WHERE status = ?', [Visit::STATUS_ACTIVE]);
+        return array_values(array_map(fn(array $row): Visit => $this->hydrate($row), $rows));
+    }
+
     /** @param array<mixed> $row */
     private function hydrate(array $row): Visit
     {
