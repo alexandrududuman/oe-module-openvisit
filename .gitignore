@@ -9,3 +9,4 @@ composer.lock
 .DS_Store
 *.log
 .env
+/.php-cs-fixer.cache
