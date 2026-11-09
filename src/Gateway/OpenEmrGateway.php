@@ -53,6 +53,69 @@ final class OpenEmrGateway implements ClinicalGateway
         return array_map(fn(array $row): Appointment => $this->hydrate($row), $rows);
     }
 
+    public function appointmentsSince(string $sinceDate, int $categoryId): array
+    {
+        $rows = QueryUtils::fetchRecords(
+            'SELECT pce.pc_eid, pce.pc_pid, pce.pc_aid, pce.pc_catid, pce.pc_eventDate, pce.pc_startTime, pce.pc_duration,
+                    pd.fname, pd.lname, u.fname AS pce_aid_fname, u.lname AS pce_aid_lname
+               FROM openemr_postcalendar_events pce
+               LEFT JOIN patient_data pd ON pd.pid = pce.pc_pid
+               LEFT JOIN users u ON u.id = pce.pc_aid
+              WHERE pce.pc_eventDate >= ? AND pce.pc_catid = ? AND pce.pc_pid > 0
+              ORDER BY pce.pc_eventDate DESC, pce.pc_startTime DESC',
+            [$sinceDate, $categoryId],
+        );
+        return array_values(array_map(fn(array $row): Appointment => $this->hydrate($row), $rows));
+    }
+
+    public function createAppointment(int $pid, int $providerId, int $categoryId, \DateTimeImmutable $start, int $durationMinutes): int
+    {
+        $facility = Scalars::int(QueryUtils::fetchSingleValue('SELECT facility_id FROM users WHERE id = ?', 'facility_id', [$providerId]));
+        if ($facility <= 0) {
+            $facility = Scalars::int(QueryUtils::fetchSingleValue('SELECT id FROM facility ORDER BY primary_business_entity DESC, id LIMIT 1', 'id', []));
+        }
+        $id = $this->appointments->insert($pid, [
+            'pc_catid' => $categoryId,
+            'pc_title' => xl('Telehealth Visit'),
+            'pc_duration' => max(1, $durationMinutes) * 60,
+            'pc_hometext' => xl('Started without a prior appointment'),
+            'pc_eventDate' => $start->format('Y-m-d'),
+            'pc_apptstatus' => '-',
+            'pc_startTime' => $start->format('H:i:s'),
+            'pc_facility' => $facility,
+            'pc_billing_location' => $facility,
+            'pc_informant' => '',
+            'pc_aid' => $providerId,
+            'pc_website' => '',
+        ]);
+        return Scalars::int($id);
+    }
+
+    public function searchPatients(string $query, int $limit = 10): array
+    {
+        $term = trim($query);
+        if ($term === '') {
+            return [];
+        }
+        $like = $term . '%';
+        $rows = QueryUtils::fetchRecords(
+            'SELECT pid, fname, lname, DOB FROM patient_data
+              WHERE lname LIKE ? OR fname LIKE ? OR pid = ?
+              ORDER BY lname, fname LIMIT ' . max(1, min($limit, 25)),
+            [$like, $like, ctype_digit($term) ? (int) $term : 0],
+        );
+        $out = [];
+        foreach ($rows as $row) {
+            $row = Scalars::stringKeyed($row);
+            $out[] = [
+                'pid' => Scalars::int($row['pid'] ?? null),
+                'name' => trim(Scalars::string($row['fname'] ?? null) . ' ' . Scalars::string($row['lname'] ?? null)),
+                'dob' => Scalars::string($row['DOB'] ?? null),
+            ];
+        }
+        return $out;
+    }
+
     public function createEncounter(int $eid): ?int
     {
         return Scalars::nullableInt($this->appointments->createEncounterForAppointment($eid));

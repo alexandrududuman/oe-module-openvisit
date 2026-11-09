@@ -20,6 +20,15 @@ interface ClinicalGateway
     /** @return array<int, Appointment> appointments of one day in one category, ordered by time */
     public function appointmentsOn(string $date, int $categoryId): array;
 
+    /** @return list<Appointment> newest first, within the last N days, one category */
+    public function appointmentsSince(string $sinceDate, int $categoryId): array;
+
+    /** Books an appointment right now for an unscheduled visit. Returns its id. */
+    public function createAppointment(int $pid, int $providerId, int $categoryId, \DateTimeImmutable $start, int $durationMinutes): int;
+
+    /** @return list<array{pid: int, name: string, dob: string}> */
+    public function searchPatients(string $query, int $limit = 10): array;
+
     /** Returns the new encounter number, or null when core refused. */
     public function createEncounter(int $eid): ?int;
 

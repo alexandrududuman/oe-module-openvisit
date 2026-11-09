@@ -75,6 +75,16 @@ final class ModuleConfig
         return ctype_digit($raw) && (int) $raw > 0 ? (int) $raw : null;
     }
 
+    public function allowAdhoc(): bool
+    {
+        return $this->value(Settings::ALLOW_ADHOC) === '1';
+    }
+
+    public function adhocDurationMinutes(): int
+    {
+        return max(5, (int) $this->value(Settings::ADHOC_DURATION_MINUTES));
+    }
+
     public function sendEmail(): bool
     {
         return $this->value(Settings::SEND_EMAIL) === '1';

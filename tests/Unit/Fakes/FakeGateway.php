@@ -40,6 +40,27 @@ final class FakeGateway implements ClinicalGateway
         ));
     }
 
+    /** @var list<array{pid: int, providerId: int, categoryId: int, start: string, minutes: int}> */
+    public array $booked = [];
+
+    public function appointmentsSince(string $sinceDate, int $categoryId): array
+    {
+        return array_values(array_filter($this->appointments, static fn(Appointment $a): bool => $a->date >= $sinceDate && $a->categoryId === $categoryId));
+    }
+
+    public function createAppointment(int $pid, int $providerId, int $categoryId, \DateTimeImmutable $start, int $durationMinutes): int
+    {
+        $this->booked[] = ['pid' => $pid, 'providerId' => $providerId, 'categoryId' => $categoryId, 'start' => $start->format('Y-m-d H:i:s'), 'minutes' => $durationMinutes];
+        $eid = 900 + count($this->booked);
+        $this->appointments[$eid] = new Appointment($eid, $pid, $providerId, $categoryId, $start->format('Y-m-d'), $start->format('H:i:s'), $durationMinutes * 60, 'Ad', 'Hoc', 'Donna', 'Lee');
+        return $eid;
+    }
+
+    public function searchPatients(string $query, int $limit = 10): array
+    {
+        return $query === '' ? [] : [['pid' => 7, 'name' => 'Phil Belford', 'dob' => '1960-01-01']];
+    }
+
     public function createEncounter(int $eid): ?int
     {
         $this->createdEncountersFor[] = $eid;
