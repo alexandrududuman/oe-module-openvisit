@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-09
+
+Patients and guests can join from a link, with a lobby. Nothing to install on their side.
+
 ### Added
 - Patient and guest access: the provider creates join links from an Invite panel in the room;
   the link opens a public page with no login, shows the patient's first name only, and puts
@@ -42,5 +46,6 @@ First installable release: a provider can run a video visit from the calendar.
 - Install guide in `docs/install.md`.
 - Playwright browser journeys in `tests/e2e/` covering admin, physician and non-clinical users.
 
-[Unreleased]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/alexandrududuman/oe-module-openvisit/releases/tag/v0.1.0
