@@ -146,7 +146,7 @@ test.describe('OpenVisit recording', () => {
     const forms = await frameByUrl(chart, /encounter\/forms\.php/);
     const card = forms.locator('#openvisit-encounter-visit');
     await expect(card).toContainText('Video visit');
-    await expect(card.locator('a[data-status="ready"]')).toHaveCount(2);
+    await expect(card.locator(`.ovr-visit__call[data-eid="${eid}"] a[data-status="ready"]`)).toHaveCount(2);
     await chart.screenshot({ path: 'tests/e2e/results/recording-encounter.png' });
     await chart.close();
   });

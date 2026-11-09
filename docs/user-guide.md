@@ -28,6 +28,21 @@ books the appointment for you.
 5. Click **End visit** when you are done. The call closes for everyone and the encounter gets the
    real start and end time.
 
+### One encounter a day, or one per appointment
+
+OpenVisit follows OpenEMR's own choice, **Auto-Create New Encounters** under Administration →
+Globals → Calendar, so video visits and visits at the front desk count encounters the same way.
+
+- **One Encounter Per Day**, OpenEMR's default: a call joins the encounter the patient already
+  has with you that day, whether the front desk opened it at check-in or it comes from an
+  earlier call. The encounter keeps the start of the first call and takes the end of the last.
+  Each call is listed on the encounter page with its own times and recordings.
+- **Allow Encounter For Each Appointment**: every appointment gets its own encounter.
+- **Off** only stops OpenEMR from opening encounters at check-in. OpenVisit still needs one for
+  the call and treats it as one encounter per day.
+
+An encounter with another provider is never reused, nor is one from another day.
+
 Links work only around the appointment time and can be revoked from the Invite panel. A link to
 a visit that has ended tells the patient so.
 
@@ -62,7 +77,7 @@ When your administrator has turned recording on, a **Record** button sits in the
 - It stops when you click **Stop recording**, when fewer than two people are left, or when you
   end the visit.
 
-A minute or two later the recording appears on the encounter page, under **Video visit**, and in
+A minute or two later the recording appears on the encounter page, next to its call, and in
 **Visit history** on the Telehealth page. Click a preview to play it in a player that stays on
 top while you keep working. Only the provider of the visit and administrators can watch it, and
 every viewing is logged.

@@ -27,6 +27,8 @@ use OpenVisit\OpenEMR\Modules\OpenVisit\Support\Scalars;
 final class OpenEmrGateway implements ClinicalGateway
 {
     public const CATEGORY_CONSTANT_ID = 'openvisit_telehealth';
+    /** "Allow Encounter For Each Appointment" in core's Auto-Create New Encounters global. */
+    private const ENCOUNTER_PER_APPOINTMENT = '2';
 
     public function __construct(
         private readonly ModuleConfig $config,
@@ -124,10 +126,25 @@ final class OpenEmrGateway implements ClinicalGateway
         return Scalars::nullableInt($this->appointments->createEncounterForAppointment($eid));
     }
 
+    public function oneEncounterPerDay(): bool
+    {
+        return OEGlobalsBag::getInstance()->getString('auto_create_new_encounters') !== self::ENCOUNTER_PER_APPOINTMENT;
+    }
+
+    public function encounterOn(string $date, int $pid, int $providerId): ?int
+    {
+        $encounter = QueryUtils::fetchSingleValue(
+            'SELECT encounter FROM form_encounter WHERE pid = ? AND provider_id = ? AND date >= ? AND date < ? + INTERVAL 1 DAY ORDER BY encounter DESC LIMIT 1',
+            'encounter',
+            [$pid, $providerId, $date, $date],
+        );
+        return Scalars::nullableInt($encounter);
+    }
+
     public function openEncounter(int $encounter, string $startedAt): void
     {
         QueryUtils::sqlStatementThrowException(
-            'UPDATE form_encounter SET date = ? WHERE encounter = ?',
+            "UPDATE form_encounter SET date = ? WHERE encounter = ? AND TIME(date) = '00:00:00'",
             [$startedAt, $encounter],
         );
     }

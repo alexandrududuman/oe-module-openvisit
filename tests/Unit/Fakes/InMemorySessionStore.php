@@ -36,14 +36,9 @@ final class InMemorySessionStore implements SessionStore
         return null;
     }
 
-    public function findByEncounter(int $encounter): ?Visit
+    public function findByEncounter(int $encounter): array
     {
-        foreach (array_reverse($this->rows) as $visit) {
-            if ($visit->encounter === $encounter) {
-                return $visit;
-            }
-        }
-        return null;
+        return array_values(array_filter($this->rows, static fn(Visit $v): bool => $v->encounter === $encounter));
     }
 
     public function findByRoom(string $roomName): ?Visit

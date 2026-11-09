@@ -1,18 +1,25 @@
 {# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later. #}
+{# The video calls held in one encounter: a row per call with its times and recordings. #}
 <link rel="stylesheet" href="{{ assets|attr }}/css/recordings.css">
 <section class="ovr-visit" id="openvisit-encounter-visit" data-status="{{ status|attr }}" aria-labelledby="openvisit-encounter-visit-title">
-    <div class="ovr-visit__facts">
-        <h3 class="ovr-visit__title" id="openvisit-encounter-visit-title">{{ 'Video visit'|xlt }}</h3>
-        <p class="ovr-visit__line">{{ summary|text }}</p>
-        {% if hiddenRecordings %}<p class="ovr-visit__line">{{ 'Recorded. The provider of this visit and administrators can watch it.'|xlt }}</p>{% endif %}
-        {% if rejoinUrl %}
-            <a class="btn btn-primary btn-sm mt-2" href="{{ rejoinUrl|attr }}" target="_blank" rel="noopener" data-openvisit-room data-title="{{ patient|attr }}">
-                <i class="fa fa-video mr-1" aria-hidden="true"></i>{{ 'Rejoin'|xlt }}
-            </a>
-        {% endif %}
-    </div>
-    {% if recordings is not empty %}
-        {% include '_recording-thumbs.html.twig' %}
-    {% endif %}
+    <h3 class="ovr-visit__title" id="openvisit-encounter-visit-title">{% if calls|length > 1 %}{{ 'Video visits'|xlt }}{% else %}{{ 'Video visit'|xlt }}{% endif %}</h3>
+    <ol class="ovr-visit__calls">
+        {% for call in calls %}
+            <li class="ovr-visit__call" data-eid="{{ call.eid|attr }}" data-status="{{ call.status|attr }}">
+                <div class="ovr-visit__facts">
+                    <p class="ovr-visit__line">{{ call.summary|text }}</p>
+                    {% if call.hiddenRecordings %}<p class="ovr-visit__line">{{ 'Recorded. The provider of this visit and administrators can watch it.'|xlt }}</p>{% endif %}
+                    {% if call.rejoinUrl %}
+                        <a class="btn btn-primary btn-sm mt-2" href="{{ call.rejoinUrl|attr }}" target="_blank" rel="noopener" data-openvisit-room data-title="{{ call.patient|attr }}">
+                            <i class="fa fa-video mr-1" aria-hidden="true"></i>{{ 'Rejoin'|xlt }}
+                        </a>
+                    {% endif %}
+                </div>
+                {% if call.recordings is not empty %}
+                    {% include '_recording-thumbs.html.twig' with { recordings: call.recordings } %}
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ol>
 </section>
 <script src="{{ assets|attr }}/js/open-in-dock.js"></script>

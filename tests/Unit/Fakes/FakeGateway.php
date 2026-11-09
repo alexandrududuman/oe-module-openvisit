@@ -69,15 +69,37 @@ final class FakeGateway implements ClinicalGateway
         return $query === '' ? [] : [['pid' => 7, 'name' => 'Phil Belford', 'dob' => '1960-01-01']];
     }
 
+    public bool $encounterPerAppointment = false;
+    /** @var array<int, array{pid: int, provider: int, date: string}> */
+    public array $encounters = [];
+
     public function createEncounter(int $eid): ?int
     {
         $this->createdEncountersFor[] = $eid;
+        $appointment = $this->appointments[$eid];
+        $this->encounters[$this->nextEncounter] = ['pid' => $appointment->pid, 'provider' => $appointment->providerId, 'date' => $this->clock->format('Y-m-d')];
         return $this->nextEncounter++;
+    }
+
+    public function oneEncounterPerDay(): bool
+    {
+        return !$this->encounterPerAppointment;
+    }
+
+    public function encounterOn(string $date, int $pid, int $providerId): ?int
+    {
+        $found = null;
+        foreach ($this->encounters as $encounter => $e) {
+            if ($e['date'] === $date && $e['pid'] === $pid && $e['provider'] === $providerId) {
+                $found = $encounter;
+            }
+        }
+        return $found;
     }
 
     public function openEncounter(int $encounter, string $startedAt): void
     {
-        $this->openedEncounters[$encounter] = $startedAt;
+        $this->openedEncounters[$encounter] ??= $startedAt;
     }
 
     public function closeEncounter(int $encounter, string $endedAt): void

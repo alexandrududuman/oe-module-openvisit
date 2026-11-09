@@ -151,8 +151,12 @@ test.describe('OpenVisit on a fresh OpenEMR', () => {
     }
 
     // 6. A video visit right away, with the patient joining from a phone.
-    expect(await clickTopMenu(page, 'Telehealth')).toBe(true);
-    const today = await frameByUrl(page, /oe-module-openvisit\/public\/index\.php/);
+    // OpenEMR can drop a menu click while it is still opening the new patient's chart, so the click is repeated.
+    let today;
+    await expect(async () => {
+      expect(await clickTopMenu(page, 'Telehealth')).toBe(true);
+      today = await frameByUrl(page, /oe-module-openvisit\/public\/index\.php/, 5_000);
+    }).toPass({ timeout: 60_000 });
     await today.locator('#openvisit-adhoc-search').fill(PATIENT.last);
     await today.locator('#openvisit-adhoc-find').click();
     const result = today.locator('#openvisit-adhoc-results li', { hasText: `${PATIENT.first} ${PATIENT.last}` });
