@@ -13,11 +13,34 @@
         {% if encounter %}<span class="text-muted ml-2">{{ 'Encounter'|xlt }} #{{ encounter|text }}</span>{% endif %}
     </div>
     <div class="openvisit-bar__status" id="openvisit-status" data-state="loading">{{ 'Connecting to the video server'|xlt }}&hellip;</div>
+    <button type="button" class="btn btn-light btn-sm mr-2" id="openvisit-invite-toggle">
+        <i class="fa fa-user-plus mr-1" aria-hidden="true"></i>{{ 'Invite'|xlt }}
+    </button>
     <button type="button" class="btn btn-danger btn-sm" id="openvisit-end">
         <i class="fa fa-phone-slash mr-1" aria-hidden="true"></i>{{ 'End visit'|xlt }}
     </button>
 </header>
-<main id="openvisit-meet"></main>
+<div class="openvisit-body">
+    <main id="openvisit-meet"></main>
+    <aside class="openvisit-invite d-none" id="openvisit-invite" aria-label="{{ 'Invite participants'|xla }}">
+        <h3>{{ 'Patient link'|xlt }}</h3>
+        <p class="openvisit-invite__hint">{{ 'Send this link to the patient by any channel. It works only around the appointment time.'|xlt }}</p>
+        <div class="openvisit-invite__link">
+            <input type="text" readonly id="openvisit-patient-link" class="form-control form-control-sm" placeholder="{{ 'No link yet'|xla }}">
+            <button type="button" class="btn btn-primary btn-sm" id="openvisit-patient-link-create">{{ 'New patient link'|xlt }}</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="openvisit-patient-link-copy" disabled>{{ 'Copy'|xlt }}</button>
+            <button type="button" class="btn btn-secondary btn-sm d-none" id="openvisit-patient-link-email">{{ 'Email patient'|xlt }}</button>
+        </div>
+        <h3>{{ 'Guest links'|xlt }}</h3>
+        <p class="openvisit-invite__hint">{{ 'For an interpreter, a family member or another clinician.'|xlt }}</p>
+        <form class="openvisit-invite__link" id="openvisit-guest-form">
+            <input type="text" id="openvisit-guest-label" class="form-control form-control-sm" maxlength="80" placeholder="{{ 'Who is it for'|xla }}" required>
+            <button type="submit" class="btn btn-primary btn-sm">{{ 'New guest link'|xlt }}</button>
+        </form>
+        <ul class="openvisit-invite__list" id="openvisit-links"></ul>
+        <div class="openvisit-invite__message" id="openvisit-invite-message" role="status"></div>
+    </aside>
+</div>
 <div class="openvisit-ended d-none" id="openvisit-ended">
     <h2>{{ 'Visit ended'|xlt }}</h2>
     <p id="openvisit-ended-detail"></p>

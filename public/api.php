@@ -17,6 +17,7 @@ use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Bootstrap;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Support\Scalars;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -41,9 +42,33 @@ if (!CsrfUtils::verifyCsrfToken((string) $request->request->get('csrf_token_form
 $bootstrap = new Bootstrap(OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher());
 $action = (string) $request->request->get('action', '');
 
+$controller = $bootstrap->visitController();
+$userId = Scalars::int($session->get('authUserID'));
+
 if ($action === 'end') {
-    $result = $bootstrap->visitController()->end($request->request->getInt('session_id'));
+    $result = $controller->end($request->request->getInt('session_id'));
     $respond($result, $result['ok'] ? 200 : 404);
+}
+if (str_starts_with($action, 'invite.')) {
+    $result = $controller->invite(
+        $action,
+        $request->request->getInt('session_id'),
+        (string) $request->request->get('role', 'patient'),
+        $request->request->has('label') ? (string) $request->request->get('label') : null,
+        $request->request->getInt('token_id'),
+        $userId,
+    );
+    $respond($result, ($result['ok'] ?? false) === true ? 200 : 400);
+}
+if (str_starts_with($action, 'participant.')) {
+    $result = $controller->participant(
+        $action,
+        $request->request->getInt('session_id'),
+        $request->request->getInt('participant_id'),
+        (string) $request->request->get('display_name', ''),
+        (string) $request->headers->get('User-Agent', ''),
+    );
+    $respond($result, 200);
 }
 
 $respond(['ok' => false, 'error' => 'Unknown action'], 400);
