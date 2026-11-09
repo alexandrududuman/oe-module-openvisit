@@ -19,5 +19,10 @@ $classLoader->registerNamespaceIfNotExists(
     __DIR__ . DIRECTORY_SEPARATOR . 'src',
 );
 
+// On an older core the module stays dormant instead of breaking core pages.
+if (!Bootstrap::coreSupported()) {
+    return;
+}
+
 /** @var \Symfony\Component\EventDispatcher\EventDispatcherInterface $eventDispatcher */
 (new Bootstrap($eventDispatcher))->subscribeToEvents();

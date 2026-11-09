@@ -40,6 +40,8 @@ final class Bootstrap
 {
     public const MODULE_DIRECTORY = 'oe-module-openvisit';
     public const MODULE_PATH = '/interface/modules/custom_modules/' . self::MODULE_DIRECTORY;
+    /** Oldest OpenEMR release the install journey passes on; older cores lack APIs the module calls. */
+    public const MIN_OPENEMR = '8.2.0';
 
     private ?ClinicalGateway $gateway = null;
 
@@ -107,6 +109,21 @@ final class Bootstrap
     {
         $templates = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'templates';
         return (new TwigContainer($templates, OEGlobalsBag::getInstance()->getKernel()))->getTwig();
+    }
+
+    public static function coreVersion(): string
+    {
+        $bag = OEGlobalsBag::getInstance();
+        $part = static function (string $key) use ($bag): string {
+            $value = $bag->get($key);
+            return is_scalar($value) && (string) $value !== '' ? (string) $value : '0';
+        };
+        return $part('v_major') . '.' . $part('v_minor') . '.' . $part('v_patch');
+    }
+
+    public static function coreSupported(): bool
+    {
+        return version_compare(self::coreVersion(), self::MIN_OPENEMR, '>=');
     }
 
     public static function assetPath(): string

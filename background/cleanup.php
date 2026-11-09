@@ -17,8 +17,12 @@ use OpenVisit\OpenEMR\Modules\OpenVisit\Bootstrap;
 
 function openvisit_background_cleanup(): void
 {
-    $loader = new ModulesClassLoader(OEGlobalsBag::getInstance()->getProjectDir());
+    $fileroot = OEGlobalsBag::getInstance()->get('fileroot');
+    $loader = new ModulesClassLoader(is_string($fileroot) ? $fileroot : dirname(__DIR__, 5));
     $loader->registerNamespaceIfNotExists('OpenVisit\\OpenEMR\\Modules\\OpenVisit\\', dirname(__DIR__) . DIRECTORY_SEPARATOR . 'src');
+    if (!Bootstrap::coreSupported()) {
+        return;
+    }
     $bootstrap = new Bootstrap(OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher());
     $result = $bootstrap->cleanup()->run();
     error_log(sprintf(
