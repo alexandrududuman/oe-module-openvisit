@@ -43,6 +43,10 @@ services:
       ENABLE_AUTH: 1
       ENABLE_GUESTS: 0
       AUTH_TYPE: jwt
+      # Roles come from the JWT moderator claim only (token_affiliation). With jicofo's own JWT
+      # authentication or auto-owner, every patient and guest would become a moderator.
+      JICOFO_ENABLE_AUTH: 0
+      ENABLE_AUTO_OWNER: 0
       JWT_APP_ID: ${JITSI_APP_ID:-openvisit}
       JWT_APP_SECRET: ${JITSI_JWT_SECRET:-openvisit-e2e-secret-change-me-0123456789abcdef}
       ENABLE_LOBBY: 1

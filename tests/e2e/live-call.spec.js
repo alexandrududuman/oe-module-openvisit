@@ -2,7 +2,7 @@
 // Live call journey: a provider, a patient on a phone and a guest stay in one visit, media is
 // checked on every side for the whole call, and the patient drops out and is let back in.
 const { test, expect, devices } = require('@playwright/test');
-const { login, clickTopMenu, frameByUrl, configureOpenVisit, callStats, expectMediaFlowing } = require('./helpers');
+const { login, clickTopMenu, frameByUrl, configureOpenVisit, callStats, expectMediaFlowing, isModerator } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -62,6 +62,11 @@ test.describe('OpenVisit live call', () => {
     for (const p of everyone) {
       await expectMediaFlowing(p, 2);
     }
+    // Only the provider's token carries the moderator role; patients and guests cannot admit,
+    // mute, remove or record.
+    expect(await isModerator(room)).toBe(true);
+    expect(await isModerator(patient.page)).toBe(false);
+    expect(await isModerator(guest.page)).toBe(false);
     await room.screenshot({ path: 'tests/e2e/results/live-call-provider.png' });
     await patient.page.screenshot({ path: 'tests/e2e/results/live-call-patient.png' });
 

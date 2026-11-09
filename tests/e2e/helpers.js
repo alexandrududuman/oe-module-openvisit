@@ -138,6 +138,12 @@ async function callStats(page) {
   });
 }
 
+// Whether Jitsi gave this participant the moderator role (only the provider should have it).
+async function isModerator(page) {
+  const frame = page.frames().find((f) => /\/ov-[a-z0-9]{22}/.test(f.url()));
+  return frame ? frame.evaluate(() => window.APP.conference._room.isModerator()) : null;
+}
+
 // Passes once the participant sees the expected number of others and audio and video keep arriving.
 async function expectMediaFlowing(page, remotes, timeout = 60_000) {
   let previous = await callStats(page);
@@ -150,4 +156,4 @@ async function expectMediaFlowing(page, remotes, timeout = 60_000) {
   }, { timeout, intervals: [3_000] }).toBe(true);
 }
 
-module.exports = { USERS, callStats, expectMediaFlowing, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, globalsField, saveGlobals, configureOpenVisit };
+module.exports = { USERS, callStats, expectMediaFlowing, isModerator, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, globalsField, saveGlobals, configureOpenVisit };
