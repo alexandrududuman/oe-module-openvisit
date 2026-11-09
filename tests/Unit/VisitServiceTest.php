@@ -106,6 +106,22 @@ final class VisitServiceTest extends TestCase
         self::assertSame([], $this->gateway->createdEncountersFor);
     }
 
+    public function testAdhocBooksNowAndCanBeStartedRightAway(): void
+    {
+        $eid = $this->service->bookAdhoc(7, 6, 11, 15);
+
+        self::assertSame(901, $eid);
+        self::assertSame(['pid' => 7, 'providerId' => 6, 'categoryId' => 11, 'start' => '2026-11-09 10:00:00', 'minutes' => 15], $this->gateway->booked[0]);
+        self::assertSame('openvisit-adhoc', $this->gateway->audits[0][0]);
+        self::assertSame(Visit::STATUS_ACTIVE, $this->service->startForProvider($eid, 6)->visit->status);
+    }
+
+    public function testAdhocWithoutPatientIsRejected(): void
+    {
+        $this->expectException(VisitException::class);
+        $this->service->bookAdhoc(0, 6, 11, 15);
+    }
+
     public function testUnknownAppointmentIsRejected(): void
     {
         $this->expectException(VisitException::class);

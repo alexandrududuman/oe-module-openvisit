@@ -18,6 +18,21 @@
         <div class="alert alert-danger">{{ 'The Telehealth Visit calendar category is missing. Reinstall the module SQL from Manage Modules.'|xlt }}</div>
     {% endif %}
 
+    {% if configured and allowAdhoc %}
+        <div class="card mb-3" id="openvisit-adhoc">
+            <div class="card-body">
+                <h5 class="card-title">{{ 'Start a visit without an appointment'|xlt }}</h5>
+                <div class="form-inline">
+                    <input type="search" class="form-control mr-2" id="openvisit-adhoc-search" placeholder="{{ 'Patient name or id'|xla }}" autocomplete="off">
+                    <button type="button" class="btn btn-secondary" id="openvisit-adhoc-find">{{ 'Find'|xlt }}</button>
+                </div>
+                <ul class="list-group mt-2" id="openvisit-adhoc-results"></ul>
+                <div class="text-danger small mt-1" id="openvisit-adhoc-error"></div>
+            </div>
+        </div>
+    {% endif %}
+    <p><a href="sessions.php">{{ 'Visit history'|xlt }}</a></p>
+
     {% if rows is empty %}
         <p id="openvisit-empty">{{ 'No telehealth appointments today. Schedule one in the calendar with the Telehealth Visit category.'|xlt }}</p>
     {% else %}
@@ -56,5 +71,7 @@
         </table>
     {% endif %}
 </div>
+<script type="application/json" id="openvisit-today-config">{{ {'csrf': csrf, 'apiUrl': apiUrl}|json_encode|raw }}</script>
+<script src="{{ assets|attr }}/js/today.js" defer></script>
 </body>
 </html>

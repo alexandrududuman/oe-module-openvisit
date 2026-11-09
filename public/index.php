@@ -13,6 +13,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../../../globals.php';
 
 use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Bootstrap;
 
@@ -23,4 +25,5 @@ if (!AclMain::aclCheckCore('patients', 'appt')) {
 }
 
 $bootstrap = new Bootstrap(OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher());
-echo $bootstrap->visitController()->today(AclMain::aclCheckCore('admin', 'super'));
+$session = SessionWrapperFactory::getInstance()->getActiveSession();
+echo $bootstrap->visitController()->today(AclMain::aclCheckCore('admin', 'super'), CsrfUtils::collectCsrfToken($session));

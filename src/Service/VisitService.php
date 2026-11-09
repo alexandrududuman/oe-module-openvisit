@@ -54,6 +54,20 @@ final class VisitService
         return new StartedVisit($this->reload($visit->id), $appointment);
     }
 
+    /** Books a telehealth appointment right now and returns its id; the caller then opens the room for it. */
+    public function bookAdhoc(int $pid, int $userId, int $categoryId, int $durationMinutes): int
+    {
+        if ($pid <= 0) {
+            throw new VisitException(xl('Pick a patient first.'));
+        }
+        $eid = $this->gateway->createAppointment($pid, $userId, $categoryId, $this->gateway->now(), $durationMinutes);
+        if ($eid <= 0) {
+            throw new VisitException(xl('The appointment could not be created.'));
+        }
+        $this->gateway->audit('openvisit-adhoc', sprintf('appointment %d booked for an unscheduled visit', $eid), $pid);
+        return $eid;
+    }
+
     /** The room for an appointment, created on demand but not started: patients may arrive first. */
     public function ensureSession(Appointment $appointment): Visit
     {
