@@ -49,3 +49,17 @@ CREATE TABLE IF NOT EXISTS `openvisit_participant` (
     KEY `ix_openvisit_participant_session` (`session_id`)
 ) ENGINE=InnoDB COMMENT='OpenVisit: audit of who joined which session';
 #EndIf
+
+#IfNotRow openemr_postcalendar_categories pc_constant_id openvisit_telehealth
+INSERT INTO `openemr_postcalendar_categories` (
+    `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`,
+    `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`,
+    `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`,
+    `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`
+) VALUES (
+    'openvisit_telehealth', 'Telehealth Visit', '#4fa3d1', 'Video visit through OpenVisit',
+    '0', NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', '0', '900',
+    '0', NULL, '0', '0',
+    '0', '0', '1', '11', 'encounters|notes'
+);
+#EndIf

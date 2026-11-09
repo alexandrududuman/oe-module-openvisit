@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class TableSqlTest extends TestCase
 {
-    public function testEveryCreateTableIsGuardedByMatchingIfNotTable(): void
+    public function testEveryStatementIsGuardedByAMatchingDirective(): void
     {
         $sql = file_get_contents(dirname(__DIR__, 2) . '/sql/table.sql');
         self::assertIsString($sql);
@@ -22,19 +22,27 @@ final class TableSqlTest extends TestCase
             $where = 'line ' . ($number + 1);
             if (preg_match('/^#IfNotTable\s+(\S+)\s*$/', $line, $m) === 1) {
                 self::assertNull($guard, "nested directive at $where");
-                $guard = $m[1];
+                $guard = ['table' => $m[1], 'kind' => 'table'];
+                continue;
+            }
+            if (preg_match('/^#IfNotRow\s+(\S+)\s+\S+\s+\S+\s*$/', $line, $m) === 1) {
+                self::assertNull($guard, "nested directive at $where");
+                $guard = ['table' => $m[1], 'kind' => 'row'];
                 continue;
             }
             if ($line === '#EndIf') {
-                self::assertNotNull($guard, "#EndIf without #IfNotTable at $where");
+                self::assertNotNull($guard, "#EndIf without a directive at $where");
                 $guard = null;
                 continue;
             }
             if (preg_match('/CREATE TABLE(?: IF NOT EXISTS)? `?(\w+)`?/i', $line, $m) === 1) {
-                self::assertSame($guard, $m[1], "CREATE TABLE {$m[1]} is not guarded at $where");
+                self::assertSame(['table' => $m[1], 'kind' => 'table'], $guard, "CREATE TABLE {$m[1]} is not guarded at $where");
+            }
+            if (preg_match('/^INSERT INTO `?(\w+)`?/i', $line, $m) === 1) {
+                self::assertSame(['table' => $m[1], 'kind' => 'row'], $guard, "INSERT INTO {$m[1]} is not guarded by #IfNotRow at $where");
             }
         }
-        self::assertNull($guard, 'file ends inside an open #IfNotTable block');
+        self::assertNull($guard, 'file ends inside an open directive block');
     }
 
     public function testTablesCarryTheModulePrefix(): void
