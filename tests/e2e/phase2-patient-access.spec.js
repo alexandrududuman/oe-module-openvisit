@@ -3,7 +3,7 @@
 // Phase 2 journey: the physician invites the patient, the patient joins from a phone with
 // nothing but the link, waits in the lobby, is admitted, and the links can be revoked.
 const { test, expect, devices } = require('@playwright/test');
-const { login, clickTopMenu, frameByUrl, waitForDialogToClose, deleteAppointment, configureOpenVisit, dockedRoom, closeDockedRoom } = require('./helpers');
+const { login, clickTopMenu, frameByUrl, calendarFrame, waitForDialogToClose, deleteAppointment, configureOpenVisit, dockedRoom, closeDockedRoom } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -22,7 +22,7 @@ test.describe('OpenVisit patient access', () => {
     await login(page, 'physician');
 
     // Book a telehealth appointment at 11:00 (phase 1 uses 10:00).
-    const calendar = await frameByUrl(page, /\/main\/calendar\//);
+    const calendar = await calendarFrame(page);
     await calendar.getByRole('link', { name: '11:00', exact: true }).click();
     const dialog = await frameByUrl(page, /add_edit_event\.php/);
     await dialog.locator('#form_category').selectOption({ label: 'Telehealth Visit' });

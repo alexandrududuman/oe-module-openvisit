@@ -3,7 +3,7 @@
 // Phase 1 journey: admin points OpenVisit at Jitsi, a physician books a telehealth
 // appointment in the calendar, starts the video visit, ends it, and the encounter exists.
 const { test, expect } = require('@playwright/test');
-const { login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, openAppointment, deleteAppointment, configureOpenVisit, dockedRoom, closeDockedRoom } = require('./helpers');
+const { login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, calendarFrame, waitForDialogToClose, openAppointment, deleteAppointment, configureOpenVisit, dockedRoom, closeDockedRoom } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -31,7 +31,7 @@ test.describe('OpenVisit provider room', () => {
     await login(page, 'physician');
 
     // 1. New appointment from the calendar, in the Telehealth Visit category.
-    const calendar = await frameByUrl(page, /\/main\/calendar\//);
+    const calendar = await calendarFrame(page);
     await calendar.getByRole('link', { name: '10:00', exact: true }).click();
     const dialog = await frameByUrl(page, /add_edit_event\.php/);
     await dialog.locator('#form_category').selectOption({ label: 'Telehealth Visit' });

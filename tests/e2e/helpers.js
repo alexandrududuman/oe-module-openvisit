@@ -32,8 +32,13 @@ async function dismissRegistrationModal(page) {
   if (!appeared) {
     return;
   }
-  await modal.getByRole('button', { name: 'Ask again later' }).click();
-  await expect(modal).toBeHidden();
+  // Bootstrap ignores the close while the modal is still fading in, so the click is retried.
+  await expect(async () => {
+    if (await modal.isVisible()) {
+      await modal.getByRole('button', { name: 'Ask again later' }).click({ timeout: 2_000 });
+    }
+    await expect(modal).toBeHidden({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
 }
 
 // Clicks a top-level entry that opens a page directly (no dropdown). Returns whether it existed.
@@ -71,6 +76,11 @@ async function frameByUrl(page, pattern, timeout = 30_000) {
   return matches[matches.length - 1];
 }
 
+// The calendar tab itself; its dialogs (add_edit_event.php, find_patient_popup.php) live under /main/calendar/ too.
+function calendarFrame(page) {
+  return frameByUrl(page, /\/main\/calendar\/index\.php/);
+}
+
 async function waitForDialogToClose(page, srcPart) {
   await expect(page.locator(`iframe[src*="${srcPart}"]:visible`)).toHaveCount(0, { timeout: 30_000 });
 }
@@ -81,7 +91,7 @@ async function openAppointment(page, time) {
   const dialog = page.locator('iframe[src*="add_edit_event.php"][src*="eid="]:visible');
   await expect(async () => {
     if ((await dialog.count()) === 0) {
-      const calendar = await frameByUrl(page, /\/main\/calendar\//);
+      const calendar = await calendarFrame(page);
       await calendar.locator('a.event_time', { hasText: time }).last().click({ timeout: 5_000 });
     }
     await expect(dialog).toHaveCount(1, { timeout: 5_000 });
@@ -205,4 +215,4 @@ async function expectMediaFlowing(page, remotes, timeout = 60_000) {
   }, { timeout, intervals: [3_000] }).toBe(true);
 }
 
-module.exports = { USERS, callStats, expectMediaFlowing, isModerator, dockedRoom, closeDockedRoom, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, openAppointment, deleteAppointment, globalsField, saveGlobals, configureOpenVisit };
+module.exports = { USERS, callStats, expectMediaFlowing, isModerator, dockedRoom, closeDockedRoom, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, calendarFrame, waitForDialogToClose, openAppointment, deleteAppointment, globalsField, saveGlobals, configureOpenVisit };
