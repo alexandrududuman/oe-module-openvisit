@@ -2,7 +2,7 @@
 const { expect } = require('@playwright/test');
 
 const USERS = {
-  admin: { user: 'admin', pass: 'pass' },
+  admin: { user: 'admin', pass: process.env.ADMIN_PASS ?? 'pass' },
   physician: { user: 'physician', pass: 'physician' },
   accountant: { user: 'accountant', pass: 'accountant' },
 };
