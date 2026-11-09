@@ -1,0 +1,18 @@
+{# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later. #}
+<link rel="stylesheet" href="{{ assets|attr }}/css/recordings.css">
+<section class="ovr-visit" id="openvisit-encounter-visit" data-status="{{ status|attr }}" aria-labelledby="openvisit-encounter-visit-title">
+    <div class="ovr-visit__facts">
+        <h3 class="ovr-visit__title" id="openvisit-encounter-visit-title">{{ 'Video visit'|xlt }}</h3>
+        <p class="ovr-visit__line">{{ summary|text }}</p>
+        {% if hiddenRecordings %}<p class="ovr-visit__line">{{ 'Recorded. The provider of this visit and administrators can watch it.'|xlt }}</p>{% endif %}
+        {% if rejoinUrl %}
+            <a class="btn btn-primary btn-sm mt-2" href="{{ rejoinUrl|attr }}" target="_blank" rel="noopener" data-openvisit-room data-title="{{ patient|attr }}">
+                <i class="fa fa-video mr-1" aria-hidden="true"></i>{{ 'Rejoin'|xlt }}
+            </a>
+        {% endif %}
+    </div>
+    {% if recordings is not empty %}
+        {% include '_recording-thumbs.html.twig' %}
+    {% endif %}
+</section>
+<script src="{{ assets|attr }}/js/open-in-dock.js"></script>

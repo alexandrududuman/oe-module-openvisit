@@ -32,11 +32,14 @@ final class RecordingFilesTest extends TestCase
         exec('rm -rf ' . escapeshellarg($this->root));
     }
 
-    private function jibriDrop(string $dir, string $room, ?string $ready = '62.4', bool $metadata = true): void
+    private function jibriDrop(string $dir, string $room, ?string $ready = '62.4', bool $metadata = true, bool $poster = false): void
     {
         $path = $this->root . '/inbox/' . $dir;
         mkdir($path);
         file_put_contents("$path/{$room}_2026-11-09-10-00-00.mp4", str_repeat('x', 1000));
+        if ($poster) {
+            file_put_contents("$path/poster.jpg", str_repeat('j', 200));
+        }
         if ($metadata) {
             file_put_contents("$path/metadata.json", json_encode(['meeting_url' => "https://meet.example.test/{$room}"]));
         }
@@ -81,6 +84,25 @@ final class RecordingFilesTest extends TestCase
         self::assertSame('600', decoct(fileperms($this->root . '/storage/7/3.mp4') & 0777));
         self::assertSame($this->root . '/storage/7/3.mp4', $this->files->absolute('7/3.mp4'));
         self::assertDirectoryDoesNotExist($this->root . '/inbox/a');
+    }
+
+    public function testThePosterFrameTravelsWithTheVideo(): void
+    {
+        $this->jibriDrop('a', 'ov-room1', poster: true);
+        $claimed = $this->files->claimReady()[0];
+
+        $this->files->store($claimed, '7/3.mp4');
+
+        self::assertSame($this->root . '/storage/7/3.jpg', $this->files->poster('7/3.mp4'));
+        self::assertSame('600', decoct(fileperms($this->root . '/storage/7/3.jpg') & 0777));
+    }
+
+    public function testNoPosterWhenJibriMadeNone(): void
+    {
+        $this->jibriDrop('a', 'ov-room1');
+        $this->files->store($this->files->claimReady()[0], '7/3.mp4');
+
+        self::assertNull($this->files->poster('7/3.mp4'));
     }
 
     public function testAFolderJibriOwnsIsMarkedImportedInsteadOfRemoved(): void

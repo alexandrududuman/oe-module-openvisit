@@ -26,6 +26,7 @@ final class RecordingFiles
     private const CLAIMED = '.importing';
     private const UNMATCHED = '.unmatched';
     private const IMPORTED = '.imported';
+    private const POSTER = 'poster.jpg';
     private const JIBRI_NAME = '/^(.+)_\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.mp4$/';
 
     public function __construct(
@@ -71,6 +72,10 @@ final class RecordingFiles
             throw new \RuntimeException('Cannot move ' . $recording->file);
         }
         chmod($target, 0600);
+        $poster = $recording->directory . '/' . self::POSTER;
+        if (is_file($poster) && rename($poster, self::posterPath($target))) {
+            chmod(self::posterPath($target), 0600);
+        }
         foreach (glob($recording->directory . '/{,.}[!.]*', GLOB_BRACE) ?: [] as $leftover) {
             if (basename($leftover) !== self::CLAIMED) {
                 @unlink($leftover);
@@ -95,6 +100,18 @@ final class RecordingFiles
             throw new \InvalidArgumentException('Unexpected recording path');
         }
         return $this->storage . '/' . $relativePath;
+    }
+
+    /** The still frame finalize.sh took from the video, when there is one. */
+    public function poster(string $relativePath): ?string
+    {
+        $path = self::posterPath($this->absolute($relativePath));
+        return is_file($path) ? $path : null;
+    }
+
+    private static function posterPath(string $video): string
+    {
+        return substr($video, 0, -strlen('.mp4')) . '.jpg';
     }
 
     public function inboxUsable(): bool

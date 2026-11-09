@@ -4,6 +4,7 @@
 <head>
     <title>{{ 'Telehealth history'|xlt }}</title>
     {{ setupHeader() }}
+    <link rel="stylesheet" href="{{ assets|attr }}/css/recordings.css">
 </head>
 <body>
 <div class="container-fluid mt-3">
@@ -22,20 +23,13 @@
                 <tr data-eid="{{ row.eid|attr }}">
                     <td>{{ row.date|text }}</td><td>{{ row.time|text }}</td><td>{{ row.patient|text }}</td><td>{{ row.provider|text }}</td>
                     <td>{{ row.status|text }}</td><td>{{ row.startedAt|text }}</td><td>{{ row.duration|text }}</td><td>{{ row.joined|text }}</td><td>{{ row.encounter|text }}</td>
-                    <td class="openvisit-recordings">
-                        {% for rec in row.recordings %}
-                            {% if rec.status == 'ready' %}
-                                <a href="{{ rec.url|attr }}" data-recording="{{ rec.id|attr }}" data-status="ready"><i class="fa fa-play-circle" aria-hidden="true"></i> {{ 'Watch'|xlt }}{% if rec.duration %} {{ rec.duration|text }}{% endif %}</a><br>
-                            {% else %}
-                                <span class="text-muted" data-recording="{{ rec.id|attr }}" data-status="{{ rec.status|attr }}">{{ rec.status|text }}</span><br>
-                            {% endif %}
-                        {% endfor %}
-                    </td>
+                    <td class="openvisit-recordings">{% if row.recordings is not empty %}{% include '_recording-thumbs.html.twig' with { recordings: row.recordings } %}{% endif %}</td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
     {% endif %}
 </div>
+<script src="{{ assets|attr }}/js/open-in-dock.js" defer></script>
 </body>
 </html>

@@ -39,7 +39,7 @@
       start.addEventListener('click', function () {
         start.disabled = true;
         post({ action: 'visit.adhoc', pid: String(patient.pid) })
-          .then(function (result) { window.open(result.url, '_blank', 'noopener'); window.location.reload(); })
+          .then(function (result) { window.openvisitOpen.call(result.url, patient.name); window.location.reload(); })
           .catch(function (e) { start.disabled = false; error.textContent = e.message; });
       });
       item.appendChild(label);

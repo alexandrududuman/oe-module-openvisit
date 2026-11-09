@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Staff player for a visit recording, and the video stream behind it. Recordings live in the
+ * Staff player for a visit recording, the video stream and its preview frame. Recordings live in the
  * site documents folder, which the web server never serves directly.
  *
  * @package   OpenVisit
@@ -35,8 +35,22 @@ $userId = Scalars::int(SessionWrapperFactory::getInstance()->getActiveSession()-
 $controller = (new Bootstrap(OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()))->visitController();
 $recordingId = $request->query->getInt('id');
 
+if ($request->query->getBoolean('poster')) {
+    $poster = $controller->recordingPoster($recordingId, $userId);
+    if ($poster === null) {
+        http_response_code(404);
+        exit;
+    }
+    session_write_close();
+    $response = new BinaryFileResponse($poster, 200, ['Content-Type' => 'image/jpeg', 'Cache-Control' => 'private, max-age=3600', 'X-Content-Type-Options' => 'nosniff']);
+    $response->prepare($request);
+    $response->send();
+    exit;
+}
+
 if ($request->query->getBoolean('stream')) {
-    $path = $controller->recordingFile($recordingId, $userId);
+    $range = $request->headers->get('Range');
+    $path = $controller->recordingFile($recordingId, $userId, $range === null || str_starts_with($range, 'bytes=0-'));
     if ($path === null) {
         http_response_code(404);
         exit;

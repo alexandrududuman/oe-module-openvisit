@@ -32,6 +32,12 @@ final class SqlSessionStore implements SessionStore
         return $rows === [] ? null : $this->hydrate($rows[0]);
     }
 
+    public function findByEncounter(int $encounter): ?Visit
+    {
+        $rows = QueryUtils::fetchRecords('SELECT ' . self::COLUMNS . ' FROM openvisit_session WHERE encounter = ? ORDER BY id DESC LIMIT 1', [$encounter]);
+        return $rows === [] ? null : $this->hydrate($rows[0]);
+    }
+
     public function findByRoom(string $roomName): ?Visit
     {
         $rows = QueryUtils::fetchRecords('SELECT ' . self::COLUMNS . ' FROM openvisit_session WHERE room_name = ?', [$roomName]);

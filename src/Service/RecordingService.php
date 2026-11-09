@@ -132,6 +132,14 @@ final class RecordingService
         return is_file($path) ? $path : null;
     }
 
+    public function posterOf(Recording $recording): ?string
+    {
+        if ($recording->status !== Recording::STATUS_READY || $recording->filePath === null) {
+            return null;
+        }
+        return $this->files->poster($recording->filePath);
+    }
+
     /** Files what Jibri finished into storage and gives up on recordings that never came. Returns how many were filed. */
     public function importReady(): int
     {

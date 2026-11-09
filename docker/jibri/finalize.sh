@@ -19,6 +19,9 @@ for video in "$dir"/*.mp4; do
         mv "$dir/.faststart.mp4" "$video"
     fi
     duration="$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$video" || true)"
+    # A still frame for previews: two seconds in, or the first frame of a very short recording.
+    ffmpeg -nostdin -loglevel error -y -ss 2 -i "$video" -frames:v 1 -vf scale=640:-2 -pix_fmt yuvj420p "$dir/poster.jpg" || true
+    [ -s "$dir/poster.jpg" ] || ffmpeg -nostdin -loglevel error -y -i "$video" -frames:v 1 -vf scale=640:-2 -pix_fmt yuvj420p "$dir/poster.jpg" || true
 done
 
 # OpenEMR runs as another user; it moves the file out and marks the folder.

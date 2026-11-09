@@ -86,6 +86,7 @@ final class VisitController
             'moderator' => true,
             'emailEnabled' => $this->invites->emailEnabled(),
             'recording' => ['enabled' => $this->recordings->enabled(), 'minPeople' => RecordingService::MIN_PEOPLE],
+            'patientName' => trim($started->appointment->patientFirstName . ' ' . $started->appointment->patientLastName),
         ];
 
         return $this->twig->render('visit.html.twig', [
@@ -202,7 +203,6 @@ final class VisitController
             return $this->error(xl('This recording does not exist or is not ready yet.'));
         }
         [$visit, $appointment] = $owned;
-        $this->gateway->audit('openvisit-record-view', sprintf('recording %d of session %d viewed by user %d', $recording->id, $visit->id, $userId), $appointment->pid);
         return $this->twig->render('recording.html.twig', [
             'patient' => trim($appointment->patientFirstName . ' ' . $appointment->patientLastName),
             'provider' => trim($appointment->providerFirstName . ' ' . $appointment->providerLastName),
@@ -214,14 +214,94 @@ final class VisitController
         ]);
     }
 
-    /** Absolute path of a ready recording the user may watch, else null. */
-    public function recordingFile(int $recordingId, int $userId): ?string
+    /** Absolute path of a ready recording the user may watch, else null. A first byte request is a viewing. */
+    public function recordingFile(int $recordingId, int $userId, bool $startsViewing): ?string
+    {
+        $recording = $this->recordings->find($recordingId);
+        $owned = $recording === null ? null : $this->ownedVisit($recording->sessionId, $userId);
+        $path = $recording === null || $owned === null ? null : $this->recordings->fileOf($recording);
+        if ($recording !== null && $owned !== null && $path !== null && $startsViewing) {
+            $this->gateway->audit('openvisit-record-view', sprintf('recording %d of session %d viewed by user %d', $recording->id, $recording->sessionId, $userId), $owned[1]->pid);
+        }
+        return $path;
+    }
+
+    public function recordingPoster(int $recordingId, int $userId): ?string
     {
         $recording = $this->recordings->find($recordingId);
         if ($recording === null || $this->ownedVisit($recording->sessionId, $userId) === null) {
             return null;
         }
-        return $this->recordings->fileOf($recording);
+        return $this->recordings->posterOf($recording);
+    }
+
+    /** The video visit of an encounter, shown on the encounter page; empty when it had none. */
+    public function encounterCard(int $encounter, int $userId): string
+    {
+        $visit = $encounter > 0 ? $this->sessions->findByEncounter($encounter) : null;
+        $appointment = $visit === null ? null : $this->gateway->appointment($visit->eid);
+        if ($visit === null || $appointment === null) {
+            return '';
+        }
+        $mayWatch = $this->mayAct($appointment, $userId);
+        if ($mayWatch) {
+            $this->recordings->importReady();
+        }
+        $recordings = $this->recordings->forSession($visit->id);
+        $joined = $this->participants->counts([$visit->id])[$visit->id] ?? 0;
+        return $this->twig->render('encounter-visit.html.twig', [
+            'assets' => Bootstrap::assetPath(),
+            'status' => $visit->status,
+            'summary' => $this->visitSummary($visit, $joined),
+            'rejoinUrl' => $visit->status === Visit::STATUS_ACTIVE && $mayWatch ? Bootstrap::publicPath() . '/visit.php?eid=' . $visit->eid : null,
+            'patient' => trim($appointment->patientFirstName . ' ' . $appointment->patientLastName),
+            'recordings' => $mayWatch ? $this->recordingCards($recordings, $appointment) : [],
+            'hiddenRecordings' => !$mayWatch && $recordings !== [],
+        ]);
+    }
+
+    private function visitSummary(Visit $visit, int $joined): string
+    {
+        $time = static fn(?string $at): string => $at === null ? '' : substr($at, 11, 5);
+        if ($visit->status === Visit::STATUS_ACTIVE) {
+            return sprintf(xl('In progress since %s.'), $time($visit->startedAt));
+        }
+        if ($visit->startedAt === null) {
+            return xl('Not started.');
+        }
+        $minutes = $visit->durationMinutes() ?? 0;
+        return sprintf(
+            xl('%1$s to %2$s, %3$s. %4$s joined.'),
+            $time($visit->startedAt),
+            $time($visit->endedAt),
+            $minutes === 1 ? xl('1 minute') : sprintf(xl('%d minutes'), $minutes),
+            $joined === 1 ? xl('1 person') : sprintf(xl('%d people'), $joined),
+        );
+    }
+
+    /**
+     * @param list<Recording> $recordings
+     * @return list<array<string, mixed>>
+     */
+    private function recordingCards(array $recordings, Appointment $appointment): array
+    {
+        $patient = trim($appointment->patientFirstName . ' ' . $appointment->patientLastName);
+        $base = Bootstrap::publicPath() . '/recording.php?';
+        $cards = [];
+        foreach ($recordings as $r) {
+            $time = substr($r->startedAt ?? $r->createdAt, 11, 5);
+            $cards[] = [
+                'id' => $r->id,
+                'status' => $r->status,
+                'duration' => self::clock($r->durationSeconds),
+                'time' => $time,
+                'stream' => $base . http_build_query(['id' => $r->id, 'stream' => 1]),
+                'poster' => $this->recordings->posterOf($r) === null ? null : $base . http_build_query(['id' => $r->id, 'poster' => 1]),
+                'page' => $base . http_build_query(['id' => $r->id]),
+                'title' => sprintf(xl('Recording of %1$s, %2$s at %3$s'), $patient, $appointment->date, $time),
+            ];
+        }
+        return $cards;
     }
 
     private static function clock(?int $seconds): string
@@ -302,15 +382,10 @@ final class VisitController
                 'duration' => $visit->durationMinutes(),
                 'joined' => $joined[$visit->id] ?? 0,
                 'encounter' => $visit->encounter,
-                'recordings' => array_map(static fn(Recording $r): array => [
-                    'id' => $r->id,
-                    'status' => $r->status,
-                    'duration' => self::clock($r->durationSeconds),
-                    'url' => 'recording.php?' . http_build_query(['id' => $r->id]),
-                ], $recordings[$visit->id] ?? []),
+                'recordings' => $this->recordingCards($recordings[$visit->id] ?? [], $appointment),
             ];
         }
-        return $this->twig->render('history.html.twig', ['rows' => $rows, 'since' => $since]);
+        return $this->twig->render('history.html.twig', ['rows' => $rows, 'since' => $since, 'assets' => Bootstrap::assetPath()]);
     }
 
     /** Today's telehealth appointments with their visit state. */

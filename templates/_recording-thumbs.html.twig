@@ -1,0 +1,22 @@
+{# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later. #}
+{# Recordings as preview frames; a plain click plays them in OpenVisit's floating player. #}
+<ul class="ovr-thumbs">
+    {% for rec in recordings %}
+        <li>
+            {% if rec.status == 'ready' %}
+                <a class="ovr-thumb" href="{{ rec.page|attr }}" target="_blank" rel="noopener" data-openvisit-recording data-recording="{{ rec.id|attr }}" data-status="ready"
+                   data-stream="{{ rec.stream|attr }}" data-poster="{{ rec.poster|attr }}" data-title="{{ rec.title|attr }}"
+                   aria-label="{{ 'Play the recording from'|xla }} {{ rec.time|attr }}{% if rec.duration %}, {{ rec.duration|attr }}{% endif %}">
+                    {% if rec.poster %}<img src="{{ rec.poster|attr }}" alt="" loading="lazy">{% endif %}
+                    <span class="ovr-thumb__play" aria-hidden="true"></span>
+                    <span class="ovr-thumb__tag ovr-thumb__tag--start">{{ rec.time|text }}</span>
+                    {% if rec.duration %}<span class="ovr-thumb__tag ovr-thumb__tag--end">{{ rec.duration|text }}</span>{% endif %}
+                </a>
+            {% else %}
+                <span class="ovr-thumb ovr-thumb--pending" data-recording="{{ rec.id|attr }}" data-status="{{ rec.status|attr }}">
+                    {% if rec.status == 'failed' %}{{ 'Not saved'|xlt }}{% elseif rec.status == 'processing' %}{{ 'Saving'|xlt }}{% else %}{{ 'Recording'|xlt }}{% endif %}
+                </span>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>

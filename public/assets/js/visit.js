@@ -11,10 +11,19 @@
   const endedDetail = document.getElementById('openvisit-ended-detail');
   const CLOSE_TIMEOUT_MS = 5000;
   const recording = config.recording || { enabled: false, minPeople: 2 };
+  const params = new URLSearchParams(window.location.search);
+  // Inside OpenEMR's floating window the room reports to it and takes its commands.
+  const docked = params.has('dock') && window.parent !== window;
+  const knocking = [];
+  let audioMuted = false;
+  let videoMuted = false;
   let api = null;
 
   // Exposed for tests and support: state is loading | joined | left | ended | error.
-  window.openvisit = { state: 'loading', config: { room: config.room, domain: config.domain } };
+  window.openvisit = { state: 'loading', docked: docked, config: { room: config.room, domain: config.domain } };
+  if (docked) {
+    document.body.classList.add('openvisit-docked');
+  }
 
   function setState(state, text) {
     window.openvisit.state = state;
@@ -22,7 +31,55 @@
     if (text) {
       status.textContent = text;
     }
+    tellDock();
   }
+
+  function tellDock() {
+    if (!docked) { return; }
+    window.parent.postMessage({
+      openvisit: 'room',
+      type: 'status',
+      state: window.openvisit.state === 'loading' ? 'connecting' : window.openvisit.state,
+      title: config.patientName,
+      audioMuted: audioMuted,
+      videoMuted: videoMuted,
+      recording: window.openvisit.recording === 'on',
+      knocking: knocking.slice(),
+    }, window.location.origin);
+  }
+
+  function forgetKnock(id, name) {
+    for (let i = knocking.length - 1; i >= 0; i--) {
+      if (knocking[i].id === id || (name && knocking[i].name === name)) { knocking.splice(i, 1); }
+    }
+  }
+
+  window.addEventListener('message', function (event) {
+    const data = event.data;
+    if (!docked || event.origin !== window.location.origin || event.source !== window.parent || !data || data.openvisit !== 'dock') {
+      return;
+    }
+    switch (data.command) {
+      case 'toggleAudio':
+        if (api) { api.executeCommand('toggleAudio'); }
+        break;
+      case 'toggleVideo':
+        if (api) { api.executeCommand('toggleVideo'); }
+        break;
+      case 'admit':
+        if (api) { api.executeCommand('answerKnockingParticipant', data.id, true); }
+        forgetKnock(data.id);
+        tellDock();
+        break;
+      case 'leave':
+        if (api && window.openvisit.state === 'joined') { api.executeCommand('hangup'); }
+        break;
+      case 'mode':
+        document.body.classList.toggle('openvisit-mini', data.mode === 'mini');
+        if (data.mode === 'mini' && window.openvisit.recording === 'confirming') { recordingState('off'); }
+        break;
+    }
+  });
 
   function loadApi() {
     return new Promise(function (resolve, reject) {
@@ -75,6 +132,19 @@
       api.addListener('participantLeft', countPeople);
       api.addListener('recordingStatusChanged', onRecordingStatus);
     }
+    api.addListener('audioMuteStatusChanged', function (event) { audioMuted = Boolean(event.muted); tellDock(); });
+    api.addListener('videoMuteStatusChanged', function (event) { videoMuted = Boolean(event.muted); tellDock(); });
+    api.addListener('knockingParticipant', function (event) {
+      const p = event && event.participant;
+      if (!p) { return; }
+      forgetKnock(p.id);
+      knocking.push({ id: p.id, name: p.name || 'Someone' });
+      tellDock();
+    });
+    api.addListener('participantJoined', function (event) {
+      forgetKnock(event.id, event.displayName);
+      tellDock();
+    });
     api.addListener('videoConferenceLeft', function () {
       reportProvider('participant.left');
       if (window.openvisit.recording !== 'off') {
@@ -268,6 +338,7 @@
   function recordingState(state) {
     window.openvisit.recording = state;
     renderRecording();
+    tellDock();
   }
 
   function renderRecording() {

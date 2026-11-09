@@ -22,6 +22,8 @@ interface SessionStore
 
     public function findByRoom(string $roomName): ?Visit;
 
+    public function findByEncounter(int $encounter): ?Visit;
+
     public function create(int $eid, int $providerId, string $roomName): Visit;
 
     /** Marks the visit active. Keeps the first start time on a rejoin. */

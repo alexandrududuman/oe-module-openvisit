@@ -33,3 +33,6 @@ body.openvisit-room { display: flex; flex-direction: column; background: #111; c
 .openvisit-dot { display: inline-block; width: .6rem; height: .6rem; margin-right: .4rem; border-radius: 50%; background: #ff6b6b; }
 .openvisit-consent, .openvisit-record-message { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; padding: .5rem 1rem; font-size: .875rem; background: #2b1d1d; color: #f3dede; border-bottom: 1px solid #5c2b2b; }
 .openvisit-record-message.error { background: #3a1414; color: #ff8a80; }
+/* Inside OpenEMR's floating window: the window bar names the patient and shows the state. */
+.openvisit-docked .openvisit-bar__who strong, .openvisit-docked .openvisit-bar__status { display: none; }
+.openvisit-mini .openvisit-bar, .openvisit-mini .openvisit-invite, .openvisit-mini .openvisit-consent, .openvisit-mini .openvisit-record-message { display: none; }

@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace OpenVisit\OpenEMR\Modules\OpenVisit;
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Config\ModuleConfig;
@@ -21,6 +23,8 @@ use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\ClinicalGateway;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\OpenEmrGateway;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\AppointmentListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\CalendarListener;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\DockListener;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\EncounterListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\GlobalsListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\MenuListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\PortalListener;
@@ -37,6 +41,7 @@ use OpenVisit\OpenEMR\Modules\OpenVisit\Service\RecordingService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\RoomNameGenerator;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\TokenService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\VisitService;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Support\Scalars;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Twig\Environment;
 
@@ -59,6 +64,11 @@ final class Bootstrap
         (new AppointmentListener($this->gateway(...)))->subscribe($this->dispatcher);
         (new PortalListener($this->gateway(...)))->subscribe($this->dispatcher);
         (new CalendarListener($this->gateway(...)))->subscribe($this->dispatcher);
+        (new EncounterListener(fn(int $encounter): string => $this->visitController()->encounterCard(
+            $encounter,
+            Scalars::int(SessionWrapperFactory::getInstance()->getActiveSession()->get('authUserID')),
+        )))->subscribe($this->dispatcher);
+        (new DockListener(fn(): bool => $this->config()->jitsiDomain() !== '' && AclMain::aclCheckCore('patients', 'appt')))->subscribe($this->dispatcher);
     }
 
     public function config(): ModuleConfig
@@ -142,6 +152,11 @@ final class Bootstrap
     public static function coreSupported(): bool
     {
         return version_compare(self::coreVersion(), self::MIN_OPENEMR, '>=');
+    }
+
+    public static function publicPath(): string
+    {
+        return OEGlobalsBag::getInstance()->getWebRoot() . self::MODULE_PATH . '/public';
     }
 
     public static function assetPath(): string
