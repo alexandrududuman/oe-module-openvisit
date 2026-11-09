@@ -10,9 +10,11 @@ declare(strict_types=1);
 
 namespace OpenVisit\OpenEMR\Modules\OpenVisit\Gateway;
 
+use MyMailer;
 use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Logging\EventAuditLogger;
 use OpenEMR\Common\Session\SessionWrapperFactory;
+use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Services\AppointmentService;
 use OpenEMR\Services\UserService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Config\ModuleConfig;
@@ -108,6 +110,56 @@ final class OpenEmrGateway implements ClinicalGateway
     public function now(): \DateTimeImmutable
     {
         return new \DateTimeImmutable();
+    }
+
+    public function publicBaseUrl(): string
+    {
+        $bag = OEGlobalsBag::getInstance();
+        $base = rtrim($bag->getString('site_addr_oath'), '/');
+        if ($base === '') {
+            $base = 'https://' . Scalars::string($_SERVER['HTTP_HOST'] ?? 'localhost');
+        }
+        return $base . $bag->getWebRoot();
+    }
+
+    public function siteId(): string
+    {
+        $site = Scalars::string(SessionWrapperFactory::getInstance()->getActiveSession()->get('site_id'));
+        return $site === '' ? 'default' : $site;
+    }
+
+    public function patientContact(int $pid): array
+    {
+        $row = Scalars::stringKeyed(QueryUtils::querySingleRow(
+            'SELECT email, fname, lname FROM patient_data WHERE pid = ?',
+            [$pid],
+        ) ?? []);
+        return [
+            'email' => trim(Scalars::string($row['email'] ?? null)),
+            'firstName' => Scalars::string($row['fname'] ?? null),
+            'lastName' => Scalars::string($row['lname'] ?? null),
+        ];
+    }
+
+    public function sendEmail(string $to, string $toName, string $subject, string $html, string $text): bool
+    {
+        if (!MyMailer::isConfigured()) {
+            return false;
+        }
+        $bag = OEGlobalsBag::getInstance();
+        $sender = $bag->getString('patient_reminder_sender_email');
+        if ($sender === '') {
+            $sender = $bag->getString('practice_return_email_path');
+        }
+        $mail = new MyMailer();
+        $mail->SetFrom($sender, $bag->getString('Patient_Reminder_Sender_Name'));
+        $mail->AddReplyTo($sender, $sender);
+        $mail->AddAddress($to, $toName);
+        $mail->Subject = $subject;
+        $mail->MsgHTML($html);
+        $mail->AltBody = $text;
+        $mail->IsHTML(true);
+        return (bool) $mail->Send();
     }
 
     /** @param array<mixed> $row */

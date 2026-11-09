@@ -75,4 +75,33 @@ final class FakeGateway implements ClinicalGateway
     {
         return $this->clock;
     }
+
+    public string $email = 'phil@example.test';
+    public bool $mailConfigured = true;
+    /** @var list<array{to: string, subject: string}> */
+    public array $sent = [];
+
+    public function publicBaseUrl(): string
+    {
+        return 'https://emr.example.test/openemr';
+    }
+
+    public function siteId(): string
+    {
+        return 'default';
+    }
+
+    public function patientContact(int $pid): array
+    {
+        return ['email' => $this->email, 'firstName' => 'Phil', 'lastName' => 'Belford'];
+    }
+
+    public function sendEmail(string $to, string $toName, string $subject, string $html, string $text): bool
+    {
+        if (!$this->mailConfigured) {
+            return false;
+        }
+        $this->sent[] = ['to' => $to, 'subject' => $subject];
+        return true;
+    }
 }
