@@ -81,7 +81,12 @@ jobs:
         run: npm run e2e:stack
       - name: Stack logs on failure
         if: failure()
-        run: docker compose -f tests/e2e/stack/docker-compose.yml logs --tail 200
+        run: |
+          mkdir -p tests/e2e/results/stack-logs
+          for service in $(docker compose -f tests/e2e/stack/docker-compose.yml ps --services); do
+            docker compose -f tests/e2e/stack/docker-compose.yml logs --no-color --timestamps "$service" > "tests/e2e/results/stack-logs/$service.log" 2>&1 || true
+          done
+          docker compose -f tests/e2e/stack/docker-compose.yml logs --tail 200
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
