@@ -13,6 +13,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Patients and guests no longer become Jitsi moderators. The reference stack and the documented
   Jitsi settings turn off jicofo's own JWT authentication and auto-owner, so only the provider's
   token carries the role.
+- A provider who reloads the room or rejoins after closing the tab goes straight back in, even
+  with the lobby on. A small prosody plugin, `docker/prosody/mod_openvisit_lobby_bypass.lua`,
+  lets the moderator claim of the provider's token pass the lobby; patients and guests still
+  wait to be admitted.
 - `composer require` works on any OpenEMR. The package declared a conflict with OpenEMR below
   8.5.0, which Composer applied to installations without version metadata, such as the official
   docker image, and refused the install.

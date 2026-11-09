@@ -166,8 +166,13 @@ AUTH_TYPE=jwt
 JWT_APP_ID=<app id you enter in OpenEMR>
 JWT_APP_SECRET=<secret you enter in OpenEMR>
 ENABLE_LOBBY=1
-XMPP_MUC_MODULES=token_affiliation
+XMPP_MUC_MODULES=token_affiliation,openvisit_lobby_bypass
 ```
+
+and mount `docker/prosody/mod_openvisit_lobby_bypass.lua` from this repository into prosody's
+custom plugin folder (`/prosody-plugins-custom/` in docker-jitsi-meet). Without it a provider who
+reloads the room, or rejoins after closing the tab, lands in the lobby of their own visit with
+nobody allowed to admit them.
 
 `token_affiliation` makes the provider a moderator from the JWT claim and keeps patients and
 guests in the lobby until admitted. Two more settings make sure nobody else gets that role:

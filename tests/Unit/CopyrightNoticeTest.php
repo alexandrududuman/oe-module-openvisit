@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 final class CopyrightNoticeTest extends TestCase
 {
     private const NOTICE = '/Copyright \(c\) \d{4}(-\d{4})? Alexandru Duduman/';
-    private const EXTENSIONS = ['php', 'js', 'css', 'twig', 'sh'];
+    private const EXTENSIONS = ['php', 'js', 'css', 'twig', 'sh', 'lua'];
     private const DIRECTORIES = ['src', 'public', 'templates', 'background', 'docker', 'tests'];
     private const SKIPPED = ['tests/e2e/results', 'tests/e2e/report'];
 

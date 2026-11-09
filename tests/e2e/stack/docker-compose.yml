@@ -53,7 +53,7 @@ services:
       ENABLE_LOBBY: 1
       ENABLE_RECORDING: 0
       ENABLE_XMPP_WEBSOCKET: 1
-      XMPP_MUC_MODULES: token_affiliation
+      XMPP_MUC_MODULES: token_affiliation,openvisit_lobby_bypass
       XMPP_DOMAIN: meet.jitsi
       XMPP_AUTH_DOMAIN: auth.meet.jitsi
       XMPP_GUEST_DOMAIN: guest.meet.jitsi
@@ -74,6 +74,8 @@ services:
   jitsi-prosody:
     image: ghcr.io/jitsi/prosody:${JITSI_VERSION:-stable-11248-3}
     expose: ['5222', '5280']
+    volumes:
+      - ../../../docker/prosody/mod_openvisit_lobby_bypass.lua:/prosody-plugins-custom/mod_openvisit_lobby_bypass.lua:ro
     environment: *jitsi-env
     networks:
       meet.jitsi:

@@ -89,6 +89,15 @@ test.describe('OpenVisit live call', () => {
       await expectMediaFlowing(p, 2);
     }
 
+    // The provider reloads too: the lobby is still on, yet the provider's token lets them straight in.
+    await room.reload();
+    await room.frameLocator('#openvisit-meet iframe').first().getByRole('button', { name: /join meeting|join/i }).first().click({ timeout: 60_000 });
+    await expect.poll(() => room.evaluate(() => window.openvisit && window.openvisit.state), { timeout: 60_000 }).toBe('joined');
+    expect(await isModerator(room)).toBe(true);
+    for (const p of everyone) {
+      await expectMediaFlowing(p, 2);
+    }
+
     // Ending the visit closes the call for everyone, not just for the provider.
     await room.locator('#openvisit-end').click();
     await expect.poll(() => room.evaluate(() => window.openvisit.state), { timeout: 30_000 }).toBe('ended');
