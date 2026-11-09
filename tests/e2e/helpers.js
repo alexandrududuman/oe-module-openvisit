@@ -9,6 +9,11 @@ const USERS = {
 
 async function login(page, role) {
   const { user, pass } = USERS[role];
+  // Core uses alert() and confirm() for warnings; a user reads them and clicks OK.
+  page.on('dialog', (dialog) => {
+    console.log(`[dialog] ${dialog.type()}: ${dialog.message().slice(0, 160)}`);
+    dialog.accept().catch(() => {});
+  });
   await page.goto('/interface/login/login.php?site=default');
   await page.fill('#authUser', user);
   await page.fill('#clearPass', pass);
@@ -57,8 +62,29 @@ function frameBySrc(page, pattern) {
   return page.frameLocator(`iframe[src*="${pattern}"]`).first();
 }
 
-function globalsField(frame, label) {
-  return frame.locator('div.row.form-group', { hasText: label }).first().locator('input');
+// Tab iframes are created empty and navigated by script, so match on the frame URL, not the src attribute.
+// Returns the newest matching frame: closed dialogs can leave a hidden iframe behind.
+async function frameByUrl(page, pattern, timeout = 30_000) {
+  await expect.poll(() => page.frames().some((f) => pattern.test(f.url())), { timeout }).toBe(true);
+  const matches = page.frames().filter((f) => pattern.test(f.url()));
+  return matches[matches.length - 1];
 }
 
-module.exports = { USERS, login, openMenuEntry, clickTopMenu, frameBySrc, globalsField };
+async function waitForDialogToClose(page, srcPart) {
+  await expect(page.locator(`iframe[src*="${srcPart}"]:visible`)).toHaveCount(0, { timeout: 30_000 });
+}
+
+function globalsField(frame, label) {
+  return frame.locator('div.row.form-group', { hasText: label }).first().locator('input, select').first();
+}
+
+// Clicks Save on the Globals page and waits until the server has processed it and the page reloaded.
+async function saveGlobals(page, frame) {
+  await Promise.all([
+    page.waitForResponse((r) => r.url().includes('edit_globals.php') && r.request().method() === 'POST'),
+    frame.getByRole('button', { name: 'Save' }).first().click(),
+  ]);
+  await frame.locator('ul li a', { hasText: /^Appearance$/ }).waitFor();
+}
+
+module.exports = { USERS, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, globalsField, saveGlobals };
