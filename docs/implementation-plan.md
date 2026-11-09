@@ -74,8 +74,9 @@ check explained.
 
 ## Phase 4: portal and clinical polish (v0.4.0)
 
-Delivered in slices: 4a portal Join button; 4b ad-hoc visits and the sessions page; 4c the
-optional telehealth visit form and the calendar icon.
+Delivered in slices: 4a portal Join button; 4b ad-hoc visits and the history page; 4c the
+calendar icon. The optional telehealth visit form moves to its own slice after 0.4.0, since
+it needs an encounter form registered with core.
 
 - Portal: Join button on upcoming telehealth appointments, template override, scripts via the
   dashboard hooks
