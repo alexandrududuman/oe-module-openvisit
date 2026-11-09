@@ -3,23 +3,17 @@
 OpenVisit is an OpenEMR custom module. It installs like every other Composer module and is then
 registered, installed and enabled from the Module Manager.
 
-## Patient portal
-
-Patients with a portal account see a **Join video visit** button on their telehealth
-appointments. No extra setup: the portal session identifies the patient and the module issues
-the same kind of link it would email.
-
-## Whole clinic in one command
-
-`docker/` holds a reference stack: OpenEMR with the module, MariaDB, Jitsi Meet with JWT auth
-and lobby, coturn and Caddy with automatic TLS. See [docker/README.md](../docker/README.md).
-
 ## Requirements
 
 - OpenEMR 8.2.0 or newer, PHP 8.3 or newer. On an older OpenEMR the module installs but
   stays inactive, and its setup check says which version it needs.
 - Shell access to the OpenEMR server, to run Composer or copy the module folder
 - A Jitsi Meet server with JWT authentication (the reference stack in `docker/` has one)
+
+## Whole clinic in one command
+
+`docker/` holds a reference stack: OpenEMR with the module, MariaDB, Jitsi Meet with JWT auth
+and lobby, coturn and Caddy with automatic TLS. See [docker/README.md](../docker/README.md).
 
 ## 1. Put the module in place
 
@@ -50,35 +44,54 @@ In OpenEMR: Administration > Modules > Manage Modules.
 2. Click **Install**. This creates the module's tables.
 3. Click **Enable**.
 
-## Upgrading
-
-Replace the files (`composer update alexandrududuman/oe-module-openvisit`, or unpack the new
-release over the old folder), then open Manage Modules. When the new release changes the
-database, the module's row shows **Upgrade SQL** or **Install SQL**; click it once. Releases
-before 0.6.0 did not record their SQL version, so they show **Install SQL**; it is safe to run.
-
-Equivalent from the command line, inside the OpenEMR directory:
-
-```sh
-php bin/console openemr:zfc-module --modaction=discover
-php bin/console openemr:zfc-module --modaction=install --modname=oe-module-openvisit
-php bin/console openemr:zfc-module --modaction=enable --modname=oe-module-openvisit
-```
-
 ## 3. Configure
 
-After saving the settings, open Manage Modules and click the gear icon next to OpenVisit: the
-setup check tells you whether the Jitsi server, the IFrame API, the JWT secret, the public
-address, the mailer and the cleanup service are in order, and what to do about each red line.
+1. Administration > Globals > **OpenVisit**: set the Jitsi domain, the JWT app id and the JWT
+   app secret to the values configured on the Jitsi server. The other settings have sensible
+   defaults.
+2. Administration > Globals > **Connectors**: set *Site Address* to the address patients reach
+   OpenEMR at, for example `https://emr.clinic.example`. Patient links are built from it.
+3. Manage Modules > the gear icon next to OpenVisit: the setup check tells you whether the Jitsi
+   server, the IFrame API, the JWT secret, the public address, the mailer, the cleanup service
+   and, when it is on, recording are in order, and what to do about each red line.
 
-Also enable the hourly cleanup: Administration > System > Services shows **OpenVisit: close
-abandoned visits and purge old links**; it is switched on automatically when the module is
-enabled through the Module Manager. When the module is enabled from the command line, set it
-active there.
+The hourly cleanup (Administration > System > Services, **OpenVisit: close abandoned visits and
+purge old links**) is switched on when the module is enabled through the Module Manager. When the
+module is enabled from the command line, set it active there.
 
-Administration > Globals > **OpenVisit** tab. Set the Jitsi domain, the JWT app id and the JWT
-app secret to the values configured on the Jitsi server. The other settings have sensible
-defaults.
+Then read the [user guide](user-guide.md) for running a first visit.
+
+## 4. Jitsi server
+
+Any Jitsi Meet with JWT authentication works. With `docker-jitsi-meet` set at least:
+
+```
+ENABLE_AUTH=1
+AUTH_TYPE=jwt
+JWT_APP_ID=<app id you enter in OpenEMR>
+JWT_APP_SECRET=<secret you enter in OpenEMR>
+ENABLE_LOBBY=1
+XMPP_MUC_MODULES=token_affiliation,openvisit_lobby_bypass
+```
+
+and mount `docker/prosody/mod_openvisit_lobby_bypass.lua` from this repository into prosody's
+custom plugin folder (`/prosody-plugins-custom/` in docker-jitsi-meet). Without it a provider who
+reloads the room, or rejoins after closing the tab, lands in the lobby of their own visit with
+nobody allowed to admit them.
+
+`token_affiliation` makes the provider a moderator from the JWT claim and keeps patients and
+guests in the lobby until admitted. Two more settings make sure nobody else gets that role:
+
+```
+JICOFO_ENABLE_AUTH=0
+ENABLE_AUTO_OWNER=0
+```
+
+With jicofo's own JWT authentication on, jicofo makes every participant who holds a valid token
+a moderator, patients and guests included; with auto-owner on, whoever joins first becomes one.
+Prosody still refuses anyone without a valid token. End visit closes the call for everyone
+through Jitsi's end-conference component, which docker-jitsi-meet enables by default
+(`ENABLE_END_CONFERENCE`).
 
 ## Recording visits
 
@@ -127,6 +140,27 @@ documents folder are usable.
 
 Recordings are files with protected health information. They are kept until someone deletes
 them from `sites/<site>/documents/openvisit/recordings`; include that folder in backups.
+
+## Patient portal
+
+Patients with a portal account see a **Join video visit** button on their telehealth
+appointments. No extra setup: the portal session identifies the patient and the module issues
+the same kind of link it would email.
+
+## Upgrading
+
+Replace the files (`composer update alexandrududuman/oe-module-openvisit`, or unpack the new
+release over the old folder), then open Manage Modules. When the new release changes the
+database, the module's row shows **Upgrade SQL** or **Install SQL**; click it once. Releases
+before 0.6.0 did not record their SQL version, so they show **Install SQL**; it is safe to run.
+
+Equivalent from the command line, inside the OpenEMR directory:
+
+```sh
+php bin/console openemr:zfc-module --modaction=discover
+php bin/console openemr:zfc-module --modaction=install --modname=oe-module-openvisit
+php bin/console openemr:zfc-module --modaction=enable --modname=oe-module-openvisit
+```
 
 ## Developing against the dev stack
 
@@ -206,35 +240,3 @@ OPENEMR_TAG=8.0.0 EXPECT_UNSUPPORTED=1 tests/e2e/install/run.sh copy   # stays i
 
 It needs the same `JITSI_DOMAIN` and `JITSI_JWT_SECRET` as the other journeys, and port 8350
 (`INSTALL_HTTP_PORT`).
-
-### Jitsi server requirements
-
-Any Jitsi Meet with JWT authentication works. With `docker-jitsi-meet` set at least:
-
-```
-ENABLE_AUTH=1
-AUTH_TYPE=jwt
-JWT_APP_ID=<app id you enter in OpenEMR>
-JWT_APP_SECRET=<secret you enter in OpenEMR>
-ENABLE_LOBBY=1
-XMPP_MUC_MODULES=token_affiliation,openvisit_lobby_bypass
-```
-
-and mount `docker/prosody/mod_openvisit_lobby_bypass.lua` from this repository into prosody's
-custom plugin folder (`/prosody-plugins-custom/` in docker-jitsi-meet). Without it a provider who
-reloads the room, or rejoins after closing the tab, lands in the lobby of their own visit with
-nobody allowed to admit them.
-
-`token_affiliation` makes the provider a moderator from the JWT claim and keeps patients and
-guests in the lobby until admitted. Two more settings make sure nobody else gets that role:
-
-```
-JICOFO_ENABLE_AUTH=0
-ENABLE_AUTO_OWNER=0
-```
-
-With jicofo's own JWT authentication on, jicofo makes every participant who holds a valid token
-a moderator, patients and guests included; with auto-owner on, whoever joins first becomes one.
-Prosody still refuses anyone without a valid token. End visit closes the call for everyone
-through Jitsi's end-conference component, which docker-jitsi-meet enables by default
-(`ENABLE_END_CONFERENCE`).
