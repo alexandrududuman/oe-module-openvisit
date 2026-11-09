@@ -336,9 +336,32 @@
     recordingNote(text, true);
   }
 
+  const RECORDER_ERRORS = {
+    busy: 'The recorder is busy with another visit. Try again in a few minutes.',
+    'resource-constraint': 'The recorder is busy with another visit. Try again in a few minutes.',
+    'service-unavailable': 'No recorder is available. Ask your administrator to check the Jibri service.',
+  };
+
+  // After a reload the room may already be recording; pick that recording up again.
+  function adoptRunningRecording() {
+    post({ action: 'recording.list' })
+      .then(function (result) {
+        const live = result.recordings.filter(function (r) { return r.status === 'starting' || r.status === 'recording'; }).pop();
+        if (live && window.openvisit.recording === 'off') {
+          recordingId = live.id;
+          recordingState('on');
+        }
+      })
+      .catch(function () {});
+  }
+
   function onRecordingStatus(event) {
     if (event.mode && event.mode !== 'file') { return; }
     const state = window.openvisit.recording;
+    if (event.on && state === 'off') {
+      adoptRunningRecording();
+      return;
+    }
     if (event.on && state === 'starting') {
       clearTimeout(startTimer);
       recordingState('on');
@@ -346,7 +369,7 @@
       return;
     }
     if (!event.on && state === 'starting' && event.error) {
-      recordingFailed('The recording could not start (' + event.error + ').');
+      recordingFailed(RECORDER_ERRORS[event.error] || 'The recording could not start (' + event.error + ').');
       return;
     }
     if (!event.on && (state === 'on' || state === 'stopping')) {

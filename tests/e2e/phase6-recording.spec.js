@@ -1,4 +1,5 @@
 // @ts-check
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Phase 6 journey: the provider records a visit. Recording stays off while the provider is alone,
 // starts after the consent confirmation once the patient is in, is announced to the patient,
 // stops by hand and by itself when the patient leaves, and both files play from the history.
@@ -82,6 +83,13 @@ test.describe('OpenVisit recording', () => {
     await room.screenshot({ path: 'tests/e2e/results/recording-provider.png' });
     await patient.screenshot({ path: 'tests/e2e/results/recording-patient.png' });
     await room.waitForTimeout(RECORD_SECONDS * 1000);
+
+    // A reload of the room page picks the running recording up again.
+    await room.reload();
+    await jitsi.getByRole('button', { name: /join meeting|join/i }).first().click({ timeout: 60_000 });
+    await expect.poll(() => state(room, 'state'), { timeout: 60_000 }).toBe('joined');
+    await expect.poll(() => state(room, 'recording'), { timeout: 60_000 }).toBe('on');
+    await expect.poll(() => state(room, 'people'), { timeout: 30_000 }).toBe(2);
     await room.locator('#openvisit-record').click();
     await expect.poll(() => state(room, 'recording'), { timeout: 60_000 }).toBe('off');
     expect(await state(room, 'stopReason')).toBe('manual');
