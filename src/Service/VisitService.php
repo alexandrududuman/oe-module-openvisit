@@ -19,7 +19,7 @@ use OpenVisit\OpenEMR\Modules\OpenVisit\Model\StartedVisit;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Model\Visit;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SessionStore;
 
-/** The visit lifecycle: one session per appointment, one encounter per session. */
+/** The visit lifecycle: one session per appointment; the encounter is one per patient and day, or one per appointment, as core is set. */
 final class VisitService
 {
     private const DB_FORMAT = 'Y-m-d H:i:s';
@@ -48,7 +48,7 @@ final class VisitService
         $now = $this->gateway->now()->format(self::DB_FORMAT);
         $encounter = $visit->encounter;
         if ($encounter === null) {
-            $encounter = $this->gateway->createEncounter($eid);
+            $encounter = $this->encounterFor($appointment);
             if ($encounter !== null) {
                 $this->gateway->openEncounter($encounter, $now);
             }
@@ -97,6 +97,15 @@ final class VisitService
         $this->gateway->audit('openvisit-end', sprintf('session %d', $visit->id), null);
 
         return $this->reload($visit->id);
+    }
+
+    /** Same patient, same provider, same day: the call joins the encounter already open, unless core wants one per appointment. */
+    private function encounterFor(Appointment $appointment): ?int
+    {
+        $today = $this->gateway->oneEncounterPerDay()
+            ? $this->gateway->encounterOn($this->gateway->now()->format('Y-m-d'), $appointment->pid, $appointment->providerId)
+            : null;
+        return $today ?? $this->gateway->createEncounter($appointment->eid);
     }
 
     private function reload(int $id): Visit

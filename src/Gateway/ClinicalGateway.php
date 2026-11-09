@@ -34,7 +34,13 @@ interface ClinicalGateway
     /** Returns the new encounter number, or null when core refused. */
     public function createEncounter(int $eid): ?int;
 
-    /** Core stamps new encounters at midnight; the visit sets the real start time. */
+    /** Core's Auto-Create New Encounters global: false only when it allows one encounter per appointment. */
+    public function oneEncounterPerDay(): bool;
+
+    /** The patient's latest encounter with this provider on a day (Y-m-d), or null. */
+    public function encounterOn(string $date, int $pid, int $providerId): ?int;
+
+    /** Core stamps new encounters at midnight; the first call sets the real start time, later calls keep it. */
     public function openEncounter(int $encounter, string $startedAt): void;
 
     public function closeEncounter(int $encounter, string $endedAt): void;

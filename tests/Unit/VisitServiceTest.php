@@ -66,6 +66,56 @@ final class VisitServiceTest extends TestCase
         self::assertCount(1, $this->gateway->openedEncounters);
     }
 
+    public function testSecondCallOfTheDayJoinsTheSameEncounter(): void
+    {
+        $this->gateway->appointments[44] = new Appointment(44, 7, 6, 11, '2026-11-09', '14:00:00', 900, 'Phil', 'Belford', 'Donna', 'Lee');
+        $first = $this->service->startForProvider(42, 6);
+        $this->service->end($first->visit->id);
+        $this->gateway->clock = $this->gateway->clock->modify('+4 hours');
+
+        $second = $this->service->startForProvider(44, 6);
+        $ended = $this->service->end($second->visit->id);
+
+        self::assertNotSame($first->visit->id, $second->visit->id);
+        self::assertSame(500, $second->visit->encounter);
+        self::assertSame([42], $this->gateway->createdEncountersFor);
+        self::assertSame([500 => '2026-11-09 10:00:00'], $this->gateway->openedEncounters);
+        self::assertSame([500 => $ended->endedAt], $this->gateway->closedEncounters);
+    }
+
+    public function testCallJoinsTheEncounterOpenedAtCheckIn(): void
+    {
+        $this->gateway->encounters[300] = ['pid' => 7, 'provider' => 6, 'date' => '2026-11-09'];
+
+        $started = $this->service->startForProvider(42, 6);
+
+        self::assertSame(300, $started->visit->encounter);
+        self::assertSame([], $this->gateway->createdEncountersFor);
+        self::assertSame([300 => '2026-11-09 10:00:00'], $this->gateway->openedEncounters);
+    }
+
+    public function testEncounterOfAnotherProviderOrDayIsNotReused(): void
+    {
+        $this->gateway->encounters[300] = ['pid' => 7, 'provider' => 9, 'date' => '2026-11-09'];
+        $this->gateway->encounters[301] = ['pid' => 7, 'provider' => 6, 'date' => '2026-11-08'];
+
+        $started = $this->service->startForProvider(42, 6);
+
+        self::assertSame(500, $started->visit->encounter);
+        self::assertSame([42], $this->gateway->createdEncountersFor);
+    }
+
+    public function testEncounterPerAppointmentSettingAlwaysCreatesOne(): void
+    {
+        $this->gateway->encounterPerAppointment = true;
+        $this->gateway->encounters[300] = ['pid' => 7, 'provider' => 6, 'date' => '2026-11-09'];
+
+        $started = $this->service->startForProvider(42, 6);
+
+        self::assertSame(500, $started->visit->encounter);
+        self::assertSame([42], $this->gateway->createdEncountersFor);
+    }
+
     public function testEndStampsSessionAndEncounter(): void
     {
         $started = $this->service->startForProvider(42, 6);
