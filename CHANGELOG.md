@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Security
+- Staff actions on a visit (end, invite, revoke, participant events, opening the room) now
+  require the appointment's provider or an administrator; other staff get the same answer as
+  for a missing visit.
+- Links of an ended visit are refused and an ended visit is no longer reopened by reloading
+  the room; the link use cap is enforced atomically.
+- Rate limiting counts only failed attempts, also per link, and honours a configurable list of
+  trusted proxy addresses so patients behind a reverse proxy are not lumped together.
+- Join events are accepted only from live links, once per link, and a link can only close its
+  own participant row.
+- The public join page sends no-store, nosniff, frame-ancestors none and a content security
+  policy; links are never built from the Host header.
+- Patient search requires the demographics permission, at least two characters, escapes
+  wildcards and returns only the birth year; the room subject no longer names the patient.
+- Portal joins are throttled per patient and get short-lived, few-use links.
+
 ## [0.4.0] - 2026-11-09
 
 Portal patients can join, providers can start a visit on the spot, and the history page shows
