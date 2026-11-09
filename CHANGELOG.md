@@ -23,6 +23,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Core now records the module's SQL version, so the Module Manager offers schema upgrades. The
   schema moved from `sql/table.sql` to `sql/install.sql`; existing installs get an Install SQL
   button that is safe to run.
+- A three-way call keeps flowing when one person drops and comes back. Jitsi's peer-to-peer
+  mode is off in the room, so media always goes through the clinic's bridge; before, the switch
+  from peer-to-peer back to the bridge could leave the provider and a guest sending nothing.
 
 ### Changed
 - Schema 0.6.0: `openvisit_recording` table, applied by `sql/0_5_0-to-0_6_0_upgrade.sql`.

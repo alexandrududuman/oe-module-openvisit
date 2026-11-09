@@ -61,6 +61,11 @@ Browser (provider)            Browser (patient / guest)
 The module never proxies media. It issues tokens, records sessions and renders pages. Jitsi
 handles video. TURN handles NAT traversal.
 
+The room turns Jitsi's peer-to-peer mode off, so media always passes through the clinic's
+bridge, even with two people. Participants never learn each other's IP addresses, a call looks
+the same with or without a recorder or interpreter, and there is no switch between peer-to-peer
+and the bridge when someone drops and reconnects; that switch could leave a sender paused.
+
 ### Package
 
 - Composer name `alexandrududuman/oe-module-openvisit`, type `openemr-module`, requires

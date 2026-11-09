@@ -4,7 +4,7 @@
 // tucks into the corner, the patient knocks and is admitted from the small window, the microphone
 // is muted from it, and after being logged out the provider rejoins from the Telehealth page.
 const { test, expect, devices } = require('@playwright/test');
-const { login, clickTopMenu, frameByUrl, configureOpenVisit, expectMediaFlowing, dockedRoom, closeDockedRoom } = require('./helpers');
+const { login, clickTopMenu, frameByUrl, configureOpenVisit, callStats, expectMediaFlowing, dockedRoom, closeDockedRoom } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -62,6 +62,11 @@ test.describe('OpenVisit floating window', () => {
     await expect(win).toHaveAttribute('data-state', 'joined');
     await expectMediaFlowing(room, 1);
     await expectMediaFlowing(patient, 1);
+
+    // Two people would go peer-to-peer after Jitsi's 5 s delay; the room keeps media on the bridge.
+    await page.waitForTimeout(8_000);
+    expect((await callStats(room)).p2p).toBe(false);
+    expect((await callStats(patient)).p2p).toBe(false);
 
     // Mute from the small window; the room reports the change back.
     await win.locator('[data-action="mic"]').click();

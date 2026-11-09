@@ -104,6 +104,9 @@
       configOverwrite: {
         prejoinConfig: { enabled: true },
         disableDeepLinking: true,
+        // Media always goes through the clinic's bridge: no IP addresses exchanged between
+        // participants, and no P2P-to-bridge switch that can leave a sender paused after a reconnect.
+        p2p: { enabled: false },
         startWithAudioMuted: false,
         startWithVideoMuted: false,
         enableWelcomePage: false,
