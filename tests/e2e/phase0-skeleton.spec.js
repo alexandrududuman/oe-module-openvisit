@@ -61,6 +61,8 @@ test.describe('OpenVisit skeleton', () => {
     await row.locator('a[title*="onfig"], a:has(i.fa-cog), a:has(i.fa-gear)').first().click();
     const config = installer.frameLocator('iframe[src*="moduleConfig.php"]').first();
     await expect(config.getByRole('heading', { name: 'OpenVisit Telehealth' })).toBeVisible();
+    await expect(config.locator('#openvisit-check-summary')).toBeVisible();
+    await expect.poll(() => config.locator('#openvisit-checks li').count()).toBeGreaterThanOrEqual(5);
     await page.screenshot({ path: 'tests/e2e/results/admin-module-config.png' });
   });
 

@@ -62,7 +62,7 @@ jobs:
     env:
       OPENEMR_HTTP_PORT: '8300'
       JITSI_HTTPS_PORT: '8443'
-      JITSI_JWT_SECRET: openvisit-e2e-secret-change-me
+      JITSI_JWT_SECRET: openvisit-e2e-secret-change-me-0123456789abcdef
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

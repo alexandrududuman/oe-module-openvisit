@@ -3,6 +3,11 @@
 OpenVisit is an OpenEMR custom module. It installs like every other Composer module and is then
 registered, installed and enabled from the Module Manager.
 
+## Whole clinic in one command
+
+`docker/` holds a reference stack: OpenEMR with the module, MariaDB, Jitsi Meet with JWT auth
+and lobby, coturn and Caddy with automatic TLS. See [docker/README.md](../docker/README.md).
+
 ## Requirements
 
 - OpenEMR 8.5.0 or newer, PHP 8.3 or newer
@@ -35,6 +40,10 @@ php bin/console openemr:zfc-module --modaction=enable --modname=oe-module-openvi
 ```
 
 ## 3. Configure
+
+After saving the settings, open Manage Modules and click the gear icon next to OpenVisit: the
+setup check tells you whether the Jitsi server, the IFrame API, the JWT secret, the public
+address, the mailer and the cleanup service are in order, and what to do about each red line.
 
 Also enable the hourly cleanup: Administration > System > Services shows **OpenVisit: close
 abandoned visits and purge old links**; it is switched on automatically when the module is
