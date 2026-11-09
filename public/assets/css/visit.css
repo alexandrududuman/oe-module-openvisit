@@ -1,3 +1,7 @@
+/* The public join page does not load the OpenEMR theme, so the few utilities it needs live here. */
+.d-none { display: none !important; }
+.text-muted { color: #999; }
+.ml-2 { margin-left: .5rem; }
 html, body.openvisit-room { height: 100%; margin: 0; }
 body.openvisit-room { display: flex; flex-direction: column; background: #111; color: #eee; }
 .openvisit-bar { display: flex; align-items: center; gap: 1rem; padding: .5rem 1rem; background: #1d1d1d; border-bottom: 1px solid #333; }
@@ -6,5 +10,18 @@ body.openvisit-room { display: flex; flex-direction: column; background: #111; c
 .openvisit-bar__status[data-state="joined"] { color: #7bd389; }
 .openvisit-bar__status[data-state="error"] { color: #ff8a80; }
 #openvisit-meet { flex: 1 1 auto; min-height: 0; }
+.openvisit-body { flex: 1 1 auto; min-height: 0; display: flex; }
+.openvisit-invite { flex: 0 0 360px; max-width: 100%; overflow: auto; padding: 1rem; background: #1d1d1d; border-left: 1px solid #333; color: #eee; }
+.openvisit-invite h3 { font-size: 1rem; margin: .5rem 0; }
+.openvisit-invite__hint { font-size: .8rem; color: #aaa; }
+.openvisit-invite__link { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+.openvisit-invite__link input { flex: 1 1 100%; }
+.openvisit-invite__list { list-style: none; padding: 0; margin: 0 0 1rem; font-size: .85rem; }
+.openvisit-invite__list li { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .3rem 0; border-bottom: 1px solid #2a2a2a; }
+.openvisit-invite__list .revoked { color: #777; text-decoration: line-through; }
+.openvisit-invite__message { font-size: .85rem; color: #7bd389; min-height: 1.2rem; }
+.openvisit-invite__message.error { color: #ff8a80; }
+.openvisit-join .openvisit-bar__status[data-state="waiting"] { color: #ffd54f; }
+@media (max-width: 800px) { .openvisit-body { flex-direction: column; } .openvisit-invite { flex-basis: auto; border-left: 0; border-top: 1px solid #333; } }
 #openvisit-meet iframe { width: 100%; height: 100%; border: 0; }
 .openvisit-ended { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem; }
