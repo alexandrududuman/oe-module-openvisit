@@ -1,0 +1,15 @@
+# Needs an OpenEMR 8.5 checkout with vendor/ installed. Point OPENEMR_ROOT at it.
+parameters:
+    level: max
+    paths:
+        - src
+        - public
+        - openemr.bootstrap.php
+        - ModuleManagerListener.php
+        - moduleConfig.php
+    bootstrapFiles:
+        - %env.OPENEMR_ROOT%/vendor/autoload.php
+    scanFiles:
+        - %env.OPENEMR_ROOT%/library/translation.inc.php
+        - %env.OPENEMR_ROOT%/library/htmlspecialchars.inc.php
+    treatPhpDocTypesAsCertain: false
