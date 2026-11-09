@@ -3,7 +3,7 @@
 // Phase 2 journey: the physician invites the patient, the patient joins from a phone with
 // nothing but the link, waits in the lobby, is admitted, and the links can be revoked.
 const { test, expect, devices } = require('@playwright/test');
-const { login, clickTopMenu, frameByUrl, waitForDialogToClose, configureOpenVisit } = require('./helpers');
+const { login, clickTopMenu, frameByUrl, waitForDialogToClose, configureOpenVisit, dockedRoom, closeDockedRoom } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -40,8 +40,8 @@ test.describe('OpenVisit patient access', () => {
     expect(await clickTopMenu(page, 'Telehealth')).toBe(true);
     const today = await frameByUrl(page, /oe-module-openvisit\/public\/index\.php/);
     const row = today.locator('#openvisit-today tr', { hasText: '11:00' }).filter({ hasText: PATIENT.last }).last();
-    const [room] = await Promise.all([context.waitForEvent('page'), row.locator('a', { hasText: /Start video visit/ }).click()]);
-    await room.waitForLoadState('domcontentloaded');
+    await row.locator('a', { hasText: /Start video visit/ }).click();
+    const room = await dockedRoom(page);
     const jitsi = room.frameLocator('#openvisit-meet iframe').first();
     await jitsi.getByRole('button', { name: /join meeting|join/i }).first().click({ timeout: 60_000 });
     await expect.poll(() => room.evaluate(() => window.openvisit && window.openvisit.state), { timeout: 60_000 }).toBe('joined');
@@ -56,7 +56,7 @@ test.describe('OpenVisit patient access', () => {
     await expect(room.locator('#openvisit-links li', { hasText: 'Interpreter' })).toBeVisible();
     const guestUrl = await room.evaluate(() => window.openvisit.lastGuestLink);
     expect(guestUrl).toMatch(/join\.php\?t=/);
-    await room.screenshot({ path: 'tests/e2e/results/provider-invite-panel.png' });
+    await page.screenshot({ path: 'tests/e2e/results/provider-invite-panel.png' });
 
     // The patient opens the link on a phone: no login, first name only, lobby.
     const phone = await browser.newContext({
@@ -98,7 +98,7 @@ test.describe('OpenVisit patient access', () => {
     await phone.close();
     await room.locator('#openvisit-end').click();
     await expect.poll(() => room.evaluate(() => window.openvisit.state), { timeout: 30_000 }).toBe('ended');
-    await room.close();
+    await closeDockedRoom(page);
 
     await page.bringToFront();
     expect(await clickTopMenu(page, 'Telehealth')).toBe(true);

@@ -3,7 +3,7 @@
 // Phase 1 journey: admin points OpenVisit at Jitsi, a physician books a telehealth
 // appointment in the calendar, starts the video visit, ends it, and the encounter exists.
 const { test, expect } = require('@playwright/test');
-const { login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, configureOpenVisit } = require('./helpers');
+const { login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, configureOpenVisit, dockedRoom, closeDockedRoom } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -64,23 +64,23 @@ test.describe('OpenVisit provider room', () => {
     expect(eid).toMatch(/^\d+$/);
 
     // 3. Start opens the room in a new tab; the provider joins as moderator.
-    const [room] = await Promise.all([context.waitForEvent('page'), start.click()]);
-    await room.waitForLoadState('domcontentloaded');
-    await expect(room.locator('#openvisit-status')).toBeVisible();
+    await start.click();
+    const room = await dockedRoom(page);
+    await expect(page.locator('#openvisit-dock .ovd-window[data-kind="call"] .ovd-detail')).toBeVisible();
     // Jitsi shows its pre-join screen (camera and microphone check); the provider clicks Join.
     const jitsi = room.frameLocator('#openvisit-meet iframe').first();
     const joinButton = jitsi.getByRole('button', { name: /join meeting|join/i }).first();
     await joinButton.click({ timeout: 60_000 });
     await expect.poll(() => room.evaluate(() => window.openvisit && window.openvisit.state), { timeout: 60_000 })
       .toBe('joined');
-    await room.screenshot({ path: 'tests/e2e/results/physician-in-room.png' });
+    await page.screenshot({ path: 'tests/e2e/results/physician-in-room.png' });
 
     // 4. End the visit.
     await room.locator('#openvisit-end').click();
     await expect.poll(() => room.evaluate(() => window.openvisit.state), { timeout: 30_000 }).toBe('ended');
     await expect(room.locator('#openvisit-ended')).toBeVisible();
-    await room.screenshot({ path: 'tests/e2e/results/physician-visit-ended.png' });
-    await room.close();
+    await page.screenshot({ path: 'tests/e2e/results/physician-visit-ended.png' });
+    await closeDockedRoom(page);
 
     // Back in OpenEMR the appointment dialog is still open; close it like a user would.
     await page.bringToFront();

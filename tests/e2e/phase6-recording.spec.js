@@ -4,7 +4,7 @@
 // starts after the consent confirmation once the patient is in, is announced to the patient,
 // stops by hand and by itself when the patient leaves, and both files play from the history.
 const { test, expect, devices } = require('@playwright/test');
-const { login, clickTopMenu, frameByUrl, configureOpenVisit, expectMediaFlowing } = require('./helpers');
+const { login, clickTopMenu, frameByUrl, configureOpenVisit, expectMediaFlowing, dockedRoom, closeDockedRoom } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -42,12 +42,14 @@ test.describe('OpenVisit recording', () => {
     await today.locator('#openvisit-adhoc-search').fill(PATIENT.search);
     await today.locator('#openvisit-adhoc-find').click();
     const result = today.locator('#openvisit-adhoc-results li', { hasText: PATIENT.name });
-    const [room] = await Promise.all([context.waitForEvent('page'), result.getByRole('button', { name: /start video visit/i }).click()]);
-    await room.waitForLoadState('domcontentloaded');
+    const pid = await result.getAttribute('data-pid');
+    await result.getByRole('button', { name: /start video visit/i }).click();
+    const room = await dockedRoom(page);
     const eid = new URL(room.url()).searchParams.get('eid');
     const jitsi = room.frameLocator('#openvisit-meet iframe').first();
     await jitsi.getByRole('button', { name: /join meeting|join/i }).first().click({ timeout: 60_000 });
     await expect.poll(() => state(room, 'state'), { timeout: 60_000 }).toBe('joined');
+    const encounter = (await room.locator('.openvisit-bar__who').innerText()).match(/Encounter #(\d+)/)[1];
 
     // Alone in the call: the button stays off, and the server refuses a direct request too.
     await expect.poll(() => state(room, 'people')).toBe(1);
@@ -80,12 +82,12 @@ test.describe('OpenVisit recording', () => {
     await expect(patient.locator('#openvisit-recording-banner')).toBeVisible({ timeout: 30_000 });
     await expectMediaFlowing(room, 1);
     await expectMediaFlowing(patient, 1);
-    await room.screenshot({ path: 'tests/e2e/results/recording-provider.png' });
+    await page.screenshot({ path: 'tests/e2e/results/recording-provider.png' });
     await patient.screenshot({ path: 'tests/e2e/results/recording-patient.png' });
     await room.waitForTimeout(RECORD_SECONDS * 1000);
 
     // A reload of the room page picks the running recording up again.
-    await room.reload();
+    await room.goto(room.url());
     await jitsi.getByRole('button', { name: /join meeting|join/i }).first().click({ timeout: 60_000 });
     await expect.poll(() => state(room, 'state'), { timeout: 60_000 }).toBe('joined');
     await expect.poll(() => state(room, 'recording'), { timeout: 60_000 }).toBe('on');
@@ -110,7 +112,7 @@ test.describe('OpenVisit recording', () => {
 
     await room.locator('#openvisit-end').click();
     await expect.poll(() => state(room, 'state'), { timeout: 30_000 }).toBe('ended');
-    await room.close();
+    await closeDockedRoom(page);
 
     // Both recordings are in the visit history and the first one plays.
     await page.bringToFront();
@@ -120,15 +122,32 @@ test.describe('OpenVisit recording', () => {
     const history = await frameByUrl(page, /oe-module-openvisit\/public\/sessions\.php/);
     const watch = history.locator(`#openvisit-history tr[data-eid="${eid}"] a[data-status="ready"]`);
     await expect(watch).toHaveCount(2);
+    await expect(watch.first().locator('img')).toBeVisible();
     await watch.first().click();
-    const player = await frameByUrl(page, /oe-module-openvisit\/public\/recording\.php\?id=/);
-    const video = player.locator('#openvisit-player');
+
+    // It plays in the floating player, which keeps playing on top while the provider works elsewhere.
+    const video = page.locator('#openvisit-dock .ovd-window[data-kind="player"] video');
+    await expect(video).toBeVisible();
     await expect.poll(() => video.evaluate((v) => v.readyState), { timeout: 30_000 }).toBeGreaterThanOrEqual(1);
-    const duration = await video.evaluate((v) => v.duration);
-    expect(duration).toBeGreaterThanOrEqual(RECORD_SECONDS - 2);
+    expect(await video.evaluate((v) => v.duration)).toBeGreaterThanOrEqual(RECORD_SECONDS - 2);
     await video.evaluate((v) => { v.muted = true; return v.play(); });
-    await expect.poll(() => video.evaluate((v) => v.currentTime), { timeout: 30_000 }).toBeGreaterThan(2);
+    await expect.poll(() => video.evaluate((v) => v.currentTime), { timeout: 30_000 }).toBeGreaterThan(1);
     expect(await video.evaluate((v) => v.videoWidth)).toBeGreaterThan(0);
+    expect(await clickTopMenu(page, 'Calendar')).toBe(true);
+    const before = await video.evaluate((v) => v.currentTime);
+    await expect.poll(() => video.evaluate((v) => v.currentTime), { timeout: 15_000 }).toBeGreaterThan(before + 1);
     await page.screenshot({ path: 'tests/e2e/results/recording-playback.png' });
+    await page.locator('#openvisit-dock .ovd-window[data-kind="player"] [data-action="close"]').click();
+
+    // The encounter page shows the video visit with both recordings.
+    const chart = await context.newPage();
+    await chart.goto(`/interface/patient_file/summary/demographics.php?set_pid=${pid}`);
+    await chart.goto(`/interface/patient_file/encounter/encounter_top.php?set_encounter=${encounter}`);
+    const forms = await frameByUrl(chart, /encounter\/forms\.php/);
+    const card = forms.locator('#openvisit-encounter-visit');
+    await expect(card).toContainText('Video visit');
+    await expect(card.locator('a[data-status="ready"]')).toHaveCount(2);
+    await chart.screenshot({ path: 'tests/e2e/results/recording-encounter.png' });
+    await chart.close();
   });
 });

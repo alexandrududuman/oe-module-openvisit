@@ -4,7 +4,7 @@
 // older release), sets it up by following the setup check, and runs a first visit with a patient
 // on a phone. Run through tests/e2e/install/run.sh, which prepares the pristine OpenEMR.
 const { test, expect, devices } = require('@playwright/test');
-const { login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, globalsField, saveGlobals, expectMediaFlowing } = require('../helpers');
+const { login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, globalsField, saveGlobals, expectMediaFlowing, dockedRoom, closeDockedRoom } = require('../helpers');
 
 const BASE_URL = process.env.FRESH_OPENEMR_URL ?? '';
 const METHOD = process.env.INSTALL_METHOD ?? 'copy';
@@ -156,8 +156,8 @@ test.describe('OpenVisit on a fresh OpenEMR', () => {
     await today.locator('#openvisit-adhoc-search').fill(PATIENT.last);
     await today.locator('#openvisit-adhoc-find').click();
     const result = today.locator('#openvisit-adhoc-results li', { hasText: `${PATIENT.first} ${PATIENT.last}` });
-    const [room] = await Promise.all([context.waitForEvent('page'), result.getByRole('button', { name: /start video visit/i }).click()]);
-    await room.waitForLoadState('domcontentloaded');
+    await result.getByRole('button', { name: /start video visit/i }).click();
+    const room = await dockedRoom(page);
     const eid = new URL(room.url()).searchParams.get('eid');
     await expect(room.locator('.openvisit-bar__who')).toContainText('Encounter');
     const jitsi = room.frameLocator('#openvisit-meet iframe').first();
@@ -178,12 +178,12 @@ test.describe('OpenVisit on a fresh OpenEMR', () => {
     await expect.poll(() => patient.evaluate(() => window.openvisit && window.openvisit.state), { timeout: 60_000 }).toBe('joined');
     await expectMediaFlowing(room, 1);
     await expectMediaFlowing(patient, 1);
-    await room.screenshot({ path: `tests/e2e/results/install-${METHOD}-first-visit.png` });
+    await page.screenshot({ path: `tests/e2e/results/install-${METHOD}-first-visit.png` });
 
     await room.locator('#openvisit-end').click();
     await expect.poll(() => room.evaluate(() => window.openvisit.state), { timeout: 30_000 }).toBe('ended');
     await expect.poll(() => patient.evaluate(() => window.openvisit.state), { timeout: 30_000 }).toBe('ended');
-    await room.close();
+    await closeDockedRoom(page);
     await phone.close();
 
     // 7. The visit is on record.

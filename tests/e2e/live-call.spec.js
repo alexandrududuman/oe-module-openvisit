@@ -3,7 +3,7 @@
 // Live call journey: a provider, a patient on a phone and a guest stay in one visit, media is
 // checked on every side for the whole call, and the patient drops out and is let back in.
 const { test, expect, devices } = require('@playwright/test');
-const { login, clickTopMenu, frameByUrl, configureOpenVisit, callStats, expectMediaFlowing, isModerator } = require('./helpers');
+const { login, clickTopMenu, frameByUrl, configureOpenVisit, callStats, expectMediaFlowing, isModerator, dockedRoom, closeDockedRoom } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -41,8 +41,8 @@ test.describe('OpenVisit live call', () => {
     await today.locator('#openvisit-adhoc-search').fill(PATIENT.search);
     await today.locator('#openvisit-adhoc-find').click();
     const result = today.locator('#openvisit-adhoc-results li', { hasText: PATIENT.name });
-    const [room] = await Promise.all([context.waitForEvent('page'), result.getByRole('button', { name: /start video visit/i }).click()]);
-    await room.waitForLoadState('domcontentloaded');
+    await result.getByRole('button', { name: /start video visit/i }).click();
+    const room = await dockedRoom(page);
     const eid = new URL(room.url()).searchParams.get('eid');
     await room.frameLocator('#openvisit-meet iframe').first().getByRole('button', { name: /join meeting|join/i }).first().click({ timeout: 60_000 });
     await expect.poll(() => room.evaluate(() => window.openvisit && window.openvisit.state), { timeout: 60_000 }).toBe('joined');
@@ -68,7 +68,7 @@ test.describe('OpenVisit live call', () => {
     expect(await isModerator(room)).toBe(true);
     expect(await isModerator(patient.page)).toBe(false);
     expect(await isModerator(guest.page)).toBe(false);
-    await room.screenshot({ path: 'tests/e2e/results/live-call-provider.png' });
+    await page.screenshot({ path: 'tests/e2e/results/live-call-provider.png' });
     await patient.page.screenshot({ path: 'tests/e2e/results/live-call-patient.png' });
 
     // Stay in the call; every side keeps receiving audio and video the whole time.
@@ -90,7 +90,7 @@ test.describe('OpenVisit live call', () => {
     }
 
     // The provider reloads too: the lobby is still on, yet the provider's token lets them straight in.
-    await room.reload();
+    await room.goto(room.url());
     await room.frameLocator('#openvisit-meet iframe').first().getByRole('button', { name: /join meeting|join/i }).first().click({ timeout: 60_000 });
     await expect.poll(() => room.evaluate(() => window.openvisit && window.openvisit.state), { timeout: 60_000 }).toBe('joined');
     expect(await isModerator(room)).toBe(true);
@@ -107,7 +107,7 @@ test.describe('OpenVisit live call', () => {
       expect(await callStats(p)).toBeNull();
     }
     await patient.page.screenshot({ path: 'tests/e2e/results/live-call-patient-ended.png' });
-    await room.close();
+    await closeDockedRoom(page);
     await patient.context.close();
     await guest.context.close();
 

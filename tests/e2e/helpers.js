@@ -113,10 +113,33 @@ async function configureOpenVisit(browser, { domain, appId, secret, recording })
   await context.close();
 }
 
+// The Jitsi frame of a participant: a page (patient) or the room frame inside OpenEMR's floating window.
+function jitsiFrame(target) {
+  const below = (frame) => frame.childFrames().flatMap((child) => [child, ...below(child)]);
+  const frames = typeof target.frames === 'function' ? target.frames() : [target, ...below(target)];
+  return frames.find((f) => /\/ov-[a-z0-9]{22}/.test(f.url()));
+}
+
+// Starting a visit opens the room in OpenVisit's floating window on OpenEMR's main page.
+async function dockedRoom(page) {
+  const win = page.locator('#openvisit-dock .ovd-window[data-kind="call"]');
+  await expect(win).toBeVisible({ timeout: 30_000 });
+  const frame = await (await win.locator('iframe').elementHandle()).contentFrame();
+  await frame.waitForLoadState('domcontentloaded');
+  return frame;
+}
+
+// Closes the floating window once the visit has ended or the provider left.
+async function closeDockedRoom(page) {
+  const win = page.locator('#openvisit-dock .ovd-window[data-kind="call"]');
+  await win.locator('[data-action="leave"]').click();
+  await expect(win).toHaveCount(0);
+}
+
 // Media seen by one participant, read from the Jitsi page's own peer connection.
 // Null until that browser is in the conference.
 async function callStats(page) {
-  const frame = page.frames().find((f) => /\/ov-[a-z0-9]{22}/.test(f.url()));
+  const frame = jitsiFrame(page);
   if (!frame) {
     return null;
   }
@@ -145,7 +168,7 @@ async function callStats(page) {
 
 // Whether Jitsi gave this participant the moderator role (only the provider should have it).
 async function isModerator(page) {
-  const frame = page.frames().find((f) => /\/ov-[a-z0-9]{22}/.test(f.url()));
+  const frame = jitsiFrame(page);
   return frame ? frame.evaluate(() => window.APP.conference._room.isModerator()) : null;
 }
 
@@ -161,4 +184,4 @@ async function expectMediaFlowing(page, remotes, timeout = 60_000) {
   }, { timeout, intervals: [3_000] }).toBe(true);
 }
 
-module.exports = { USERS, callStats, expectMediaFlowing, isModerator, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, globalsField, saveGlobals, configureOpenVisit };
+module.exports = { USERS, callStats, expectMediaFlowing, isModerator, dockedRoom, closeDockedRoom, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, globalsField, saveGlobals, configureOpenVisit };
