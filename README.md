@@ -106,7 +106,8 @@ the design.
 
 OpenVisit is built and maintained by Alexandru Duduman. If your practice needs OpenEMR to do
 more than this module does, such as integrations with other systems, custom modules, telehealth
-workflows or hosting, consulting is available. Get in touch on
+workflows or hosting, consulting is available. Get in touch by email at
+[alexandru@thepenguindeveloper.com](mailto:alexandru@thepenguindeveloper.com) or on
 [LinkedIn](https://www.linkedin.com/in/aduduman/).
 
 ## License
