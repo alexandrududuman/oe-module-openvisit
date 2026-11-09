@@ -45,7 +45,7 @@ final class JoinController
         $displayName = $this->displayName($check);
         $now = $this->gateway->now();
         $jwt = (new JitsiJwt($this->config->jwtAppId(), $this->config->jwtAppSecret(), $this->config->jitsiDomain()))
-            ->mint($check->visit->roomName, $displayName, false, $now->getTimestamp(), new \DateTimeImmutable($check->token->expiresAt)->getTimestamp());
+            ->mint($check->visit->roomName, $displayName, false, $now->getTimestamp(), (new \DateTimeImmutable($check->token->expiresAt))->getTimestamp());
 
         $client = [
             'domain' => $this->config->jitsiDomain(),
