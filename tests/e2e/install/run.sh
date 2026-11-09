@@ -5,6 +5,7 @@
 #   composer  composer require from a path repository holding the release files
 #   upgrade   v0.5.0 installed and enabled first, then replaced by the current files
 # Env: OPENEMR_TAG (default 8.5.0), INSTALL_HTTP_PORT (8350), KEEP_STACK=1 to leave it running,
+#      EXPECT_UNSUPPORTED=1 for a core older than the module supports,
 #      JITSI_DOMAIN, JITSI_APP_ID, JITSI_JWT_SECRET as for the other journeys.
 set -euo pipefail
 
@@ -86,5 +87,15 @@ case "$METHOD" in
 esac
 
 echo "==> install journey (${METHOD})"
-cd "$ROOT"
-ADMIN_PASS=pass FRESH_OPENEMR_URL="http://localhost:${PORT}" INSTALL_METHOD="$METHOD" npx playwright test tests/e2e/install/
+(cd "$ROOT" && ADMIN_PASS=pass FRESH_OPENEMR_URL="http://localhost:${PORT}" INSTALL_METHOD="$METHOD" npx playwright test tests/e2e/install/)
+
+if [ "${EXPECT_UNSUPPORTED:-0}" != "1" ]; then
+  echo "==> schema: core recorded the module's SQL version and every table exists"
+  want="$(sed -n "s/^\$v_\(major\|minor\|patch\) = '\([0-9]*\)';/\2/p" "$ROOT/version.php" | paste -sd.)"
+  got="$(db -N -e "SELECT sql_version FROM modules WHERE mod_directory='oe-module-openvisit'")"
+  [ "$got" = "$want" ] || { echo "sql_version is '$got', expected '$want'"; exit 1; }
+  for table in $(grep -o 'CREATE TABLE IF NOT EXISTS `[a-z_]*`' "$ROOT/sql/install.sql" | tr -d '`' | awk '{print $NF}'); do
+    [ "$(db -N -e "SHOW TABLES LIKE '$table'")" = "$table" ] || { echo "table $table is missing"; exit 1; }
+  done
+  echo "    sql_version $got, tables present"
+fi

@@ -7,6 +7,7 @@ const { login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, globalsField
 
 const BASE_URL = process.env.FRESH_OPENEMR_URL ?? '';
 const METHOD = process.env.INSTALL_METHOD ?? 'copy';
+const UNSUPPORTED = process.env.EXPECT_UNSUPPORTED === '1';
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
 const JITSI_SECRET = process.env.JITSI_JWT_SECRET ?? '';
@@ -82,6 +83,20 @@ test.describe('OpenVisit on a fresh OpenEMR', () => {
     }
     await page.screenshot({ path: `tests/e2e/results/install-${METHOD}-module-manager.png` });
 
+    if (UNSUPPORTED) {
+      // An older core: the module stays dormant, says why, and core pages keep working.
+      const config = await setupCheck(page);
+      await expect(config.locator('#openvisit-check-summary')).toHaveAttribute('data-status', 'unsupported');
+      await expect(config.locator('#openvisit-check-summary')).toContainText('needs OpenEMR');
+      await page.screenshot({ path: `tests/e2e/results/install-${METHOD}-unsupported.png` });
+      await page.goto('/interface/logout.php');
+      const calendarLoaded = page.waitForResponse((r) => r.url().includes('/interface/main/calendar/index.php'));
+      await login(page, 'admin');
+      expect((await calendarLoaded).status()).toBe(200);
+      expect(await clickTopMenu(page, 'Telehealth')).toBe(false);
+      return;
+    }
+
     // 2. Settings, as the install guide describes.
     let frame = await openGlobalsTab(page, 'OpenVisit');
     await globalsField(frame, 'Jitsi domain').fill(JITSI_DOMAIN);
@@ -118,6 +133,8 @@ test.describe('OpenVisit on a fresh OpenEMR', () => {
     await form.locator('#form_sex').selectOption({ label: 'Female' });
     await form.locator('#create').click();
     const confirm = await frameByUrl(page, /new_search_popup\.php/);
+    // The button's handler is wired once the popup has loaded; older cores load it slower.
+    await confirm.waitForLoadState('load');
     await confirm.getByRole('button', { name: 'Confirm Create New Patient' }).click();
     await expect.poll(() => page.frames().some((f) => /demographics\.php/.test(f.url())), { timeout: 30_000 }).toBe(true);
 
