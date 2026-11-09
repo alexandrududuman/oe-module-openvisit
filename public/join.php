@@ -18,11 +18,20 @@ use OpenEMR\Core\OEGlobalsBag;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Bootstrap;
 use Symfony\Component\HttpFoundation\Request;
 
+$bootstrap = new Bootstrap(OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher());
+$proxies = $bootstrap->config()->trustedProxies();
+if ($proxies !== []) {
+    Request::setTrustedProxies($proxies, Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO);
+}
 $request = Request::createFromGlobals();
 header('Referrer-Policy: no-referrer');
 header('X-Robots-Tag: noindex');
+header('Cache-Control: no-store');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+$jitsi = $bootstrap->config()->jitsiDomain();
+header("Content-Security-Policy: default-src 'self'; script-src 'self' https://{$jitsi}; frame-src https://{$jitsi}; connect-src 'self' https://{$jitsi} wss://{$jitsi}; img-src 'self' data: https://{$jitsi}; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'");
 
-$bootstrap = new Bootstrap(OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher());
 echo $bootstrap->joinController()->page(
     trim((string) $request->query->get('t', '')),
     (string) ($request->getClientIp() ?? 'unknown'),

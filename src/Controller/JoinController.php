@@ -40,7 +40,9 @@ final class JoinController
         if (!$check->isOk() || $check->token === null || $check->visit === null || $check->appointment === null) {
             return $this->problem($check->status, $check);
         }
-        $this->tokens->consume($check->token);
+        if (!$this->tokens->consume($check->token)) {
+            return $this->problem(TokenCheck::USED_UP);
+        }
 
         $displayName = $this->displayName($check);
         $now = $this->gateway->now();
@@ -73,13 +75,16 @@ final class JoinController
             return ['ok' => false, 'error' => 'unknown link'];
         }
         if ($action === 'joined') {
-            $visit = null;
+            $open = $this->participants->openForToken($token->sessionId, $token->id);
+            if ($open !== null) {
+                return ['ok' => true, 'participantId' => $open->id];
+            }
             $name = $token->role === JoinToken::ROLE_GUEST ? ($token->label ?? xl('Guest')) : xl('Patient');
             $participant = $this->participants->joined($token->sessionId, $token->role, $name, $token->id, $userAgent);
             return ['ok' => true, 'participantId' => $participant->id];
         }
         if ($action === 'left' && $participantId > 0) {
-            $this->participants->left($participantId, $token->sessionId);
+            $this->participants->leftOwn($participantId, $token->sessionId, $token->id);
             return ['ok' => true];
         }
         return ['ok' => false, 'error' => 'unknown action'];
