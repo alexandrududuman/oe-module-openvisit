@@ -8,5 +8,5 @@
 }
 
 {$MEET_DOMAIN} {
-	reverse_proxy jitsi-web:80
+	reverse_proxy jitsi-web:8000
 }
