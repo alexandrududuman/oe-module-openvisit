@@ -1,4 +1,3 @@
-https://github.com/user-attachments/assets/1b295c59-23a4-4e8d-92f5-79ab37a68e61
 # OpenVisit
 
 Self-hosted video visits for [OpenEMR](https://www.open-emr.org) 8.2+, powered by [Jitsi Meet](https://jitsi.org).
@@ -10,12 +9,14 @@ Self-hosted video visits for [OpenEMR](https://www.open-emr.org) 8.2+, powered b
 
 ## See it in two minutes
 
-[![The patient joins from a phone, the doctor admits her, and the call follows the doctor around OpenEMR](docs/media/openvisit-preview.gif)](docs/media/openvisit-setup.mp4)
+![The patient joins from a phone, the doctor admits her, and the call follows the doctor around OpenEMR](docs/media/openvisit-preview.gif)
 
-The full video, [openvisit-setup.mp4](docs/media/openvisit-setup.mp4), takes two minutes: install
-the module, connect your Jitsi server, run the setup check and hold a first visit with the
-patient on a phone, while the call follows you around OpenEMR. The footage is the real module on
-OpenEMR 8.5; the people are AI-generated and the narration is Kokoro text to speech.
+The full video below takes two minutes: install the module, connect your Jitsi server, run the
+setup check and hold a first visit with the patient on a phone, while the call follows you around
+OpenEMR. The footage is the real module on OpenEMR 8.5; the people are AI-generated and the
+narration is Kokoro text to speech.
+
+https://github.com/user-attachments/assets/1b295c59-23a4-4e8d-92f5-79ab37a68e61
 
 ## Documentation
 
