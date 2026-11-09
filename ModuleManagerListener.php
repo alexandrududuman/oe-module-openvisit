@@ -51,13 +51,23 @@ class ModuleManagerListener extends AbstractModuleActionListener
     private function enable(int|string $modId, string $status): string
     {
         $this->setModuleState($modId, 1, 0);
+        $this->setBackgroundService(true);
         return $status;
     }
 
     private function disable(int|string $modId, string $status): string
     {
         $this->setModuleState($modId, 0, 1);
+        $this->setBackgroundService(false);
         return $status;
+    }
+
+    private function setBackgroundService(bool $active): void
+    {
+        QueryUtils::sqlStatementThrowException(
+            'UPDATE `background_services` SET `active` = ? WHERE `name` = ?',
+            [$active ? 1 : 0, 'OpenVisitCleanup'],
+        );
     }
 
     private function setModuleState(int|string $modId, int $active, int $uiActive): void
