@@ -35,6 +35,8 @@ final class Settings
     public const SHOW_PATIENT_LAST_INITIAL = 'openvisit_show_patient_last_initial';
     public const CALENDAR_CATEGORY = 'openvisit_calendar_category';
     public const TRUSTED_PROXIES = 'openvisit_trusted_proxies';
+    public const ALLOW_RECORDING = 'openvisit_allow_recording';
+    public const RECORDINGS_INBOX = 'openvisit_recordings_inbox';
 
     /**
      * Labels and descriptions are English source strings; callers translate them.
@@ -109,6 +111,18 @@ final class Settings
                 'type' => GlobalSetting::DATA_TYPE_BOOL,
                 'default' => 0,
                 'description' => 'Adds a short form with modality, consent and connection quality.',
+            ],
+            self::ALLOW_RECORDING => [
+                'label' => 'Allow recording',
+                'type' => GlobalSetting::DATA_TYPE_BOOL,
+                'default' => 0,
+                'description' => 'Lets the provider record a visit once at least two people are in the call. Needs Jibri on the Jitsi server.',
+            ],
+            self::RECORDINGS_INBOX => [
+                'label' => 'Recordings inbox folder',
+                'type' => GlobalSetting::DATA_TYPE_TEXT,
+                'default' => '/var/openvisit/recordings',
+                'description' => 'Folder on the OpenEMR server where Jibri leaves finished recordings. OpenVisit moves them into the site documents folder.',
             ],
             self::SHOW_PATIENT_LAST_INITIAL => [
                 'label' => 'Show patient last initial in the room',

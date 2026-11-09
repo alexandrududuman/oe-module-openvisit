@@ -99,6 +99,16 @@ final class ModuleConfig
         return $this->value(Settings::SEND_EMAIL) === '1';
     }
 
+    public function allowRecording(): bool
+    {
+        return $this->value(Settings::ALLOW_RECORDING) === '1';
+    }
+
+    public function recordingsInbox(): string
+    {
+        return rtrim(trim($this->value(Settings::RECORDINGS_INBOX)), '/');
+    }
+
     public function showPatientLastInitial(): bool
     {
         return $this->value(Settings::SHOW_PATIENT_LAST_INITIAL) === '1';

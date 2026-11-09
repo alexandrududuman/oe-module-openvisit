@@ -32,6 +32,12 @@ final class SqlSessionStore implements SessionStore
         return $rows === [] ? null : $this->hydrate($rows[0]);
     }
 
+    public function findByRoom(string $roomName): ?Visit
+    {
+        $rows = QueryUtils::fetchRecords('SELECT ' . self::COLUMNS . ' FROM openvisit_session WHERE room_name = ?', [$roomName]);
+        return $rows === [] ? null : $this->hydrate($rows[0]);
+    }
+
     public function create(int $eid, int $providerId, string $roomName): Visit
     {
         $id = QueryUtils::sqlInsert(

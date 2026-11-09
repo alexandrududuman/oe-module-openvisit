@@ -36,6 +36,16 @@ final class InMemorySessionStore implements SessionStore
         return null;
     }
 
+    public function findByRoom(string $roomName): ?Visit
+    {
+        foreach ($this->rows as $visit) {
+            if ($visit->roomName === $roomName) {
+                return $visit;
+            }
+        }
+        return null;
+    }
+
     public function create(int $eid, int $providerId, string $roomName): Visit
     {
         $visit = new Visit($this->nextId++, $eid, null, $roomName, $providerId, Visit::STATUS_SCHEDULED, null, null);
