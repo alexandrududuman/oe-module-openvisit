@@ -89,7 +89,8 @@ async function saveGlobals(page, frame) {
 }
 
 // Points OpenVisit at a Jitsi server the way an administrator does, in its own browser context.
-async function configureOpenVisit(browser, { domain, appId, secret }) {
+// recording: true or false switches Allow recording; left out, the setting is not touched.
+async function configureOpenVisit(browser, { domain, appId, secret, recording }) {
   const context = await browser.newContext({ ignoreHTTPSErrors: true });
   const page = await context.newPage();
   await login(page, 'admin');
@@ -102,6 +103,9 @@ async function configureOpenVisit(browser, { domain, appId, secret }) {
   // Wide join windows so a same-day test appointment is joinable whatever the clock says.
   await globalsField(frame, 'Join window before appointment').fill('1440');
   await globalsField(frame, 'Join window after appointment').fill('24');
+  if (recording !== undefined) {
+    await globalsField(frame, 'Allow recording').setChecked(recording);
+  }
   await saveGlobals(page, frame);
   frame = frameBySrc(page, 'edit_globals.php');
   await frame.locator('ul li a', { hasText: /^OpenVisit$/ }).click();
