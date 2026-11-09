@@ -37,7 +37,6 @@ reading PHP.
 
 ### Not in v1
 
-- Recording (needs Jibri, a separate service). Planned for 1.x with in-session consent.
 - SMS invitations. Email only in v1. SMS via the Fax/SMS module in 1.x.
 - REST or FHIR endpoints.
 - Scheduling from the portal.
@@ -176,6 +175,34 @@ minutes, counted in `openvisit_join_attempt`) and every link has a use limit of 
 leave events from the patient's browser go to `join-events.php`, again authenticated by the link,
 and are confirmed server-side into `openvisit_participant`.
 
+## Recording
+
+Added in 0.6.0. Off by default; it needs Jibri, Jitsi's recorder, next to the Jitsi server.
+
+- **Who and when**: only the provider (the moderator) starts it, after confirming in the room that
+  the patient agreed. It needs at least two people in the call: the provider plus a patient or
+  guest. The room enforces this from the IFrame API participant count; the server enforces it
+  again from the open rows in `openvisit_participant`, counting a provider on two tabs once.
+- **Announcement**: Jitsi shows its recording mark to everyone; the patient and guest page adds a
+  banner while `recordingStatusChanged` reports a file recording.
+- **Stop**: by the provider, automatically when fewer than two people remain, and before End visit
+  closes the call. A participant whose connection dies counts until Jitsi drops them.
+- **Files**: Jibri records into its folder; `docker/jibri/finalize.sh` remuxes the MP4 with
+  `+faststart`, writes the duration into a `.ready` marker and opens the folder to the web user.
+  The module claims ready folders atomically (rename of the marker), finds the visit by room name
+  from Jibri's `metadata.json`, and moves the file to
+  `sites/<site>/documents/openvisit/recordings/<session>/<recording>.mp4`, mode 0600. Core denies
+  HTTP access to that folder; `public/recording.php` streams it with range support after the same
+  check as every staff action (appointment provider or administrator) and logs each viewing.
+  Import runs when the room polls after a stop, when Visit history opens and in the hourly
+  background service.
+- **Table** `openvisit_recording`: session, status (starting, recording, processing, ready,
+  failed), who started it, start and stop time, file path, size, duration. Recordings that never
+  start within 10 minutes, or whose file never arrives within 12 hours, are marked failed.
+- **Not yet**: retention and deletion from the UI, attaching the file to the patient's Documents.
+  Core's document store reads files into memory and may encrypt them, which rules out streaming
+  long videos with seeking.
+
 ## Data model
 
 ```sql
@@ -189,6 +216,10 @@ openvisit_token
 
 openvisit_participant
   id, session_id, role, display_name, joined_at, left_at, user_agent
+
+openvisit_recording
+  id, session_id, status (starting|recording|processing|ready|failed), started_by,
+  started_at, stopped_at, file_path, file_size, duration_seconds, created_at
 ```
 
 All tables are created from `sql/install.sql` with `#IfNotTable` guards. Schema changes ship as

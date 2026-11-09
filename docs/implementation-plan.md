@@ -111,7 +111,21 @@ Done when: the install journey passes on the oldest supported release, 8.5.0 and
 OpenEMR release, an unsupported core keeps working with the module present, and the live call
 journey passes against the public reference stack.
 
+## Phase 6: recording (v0.6.0)
+
+Pulled forward from after 1.0.
+
+- Jibri in the reference and CI stacks, finalize script that hands files to OpenEMR
+- Record button for the provider, enabled with at least two people in the call, consent
+  confirmation, banner for patient and guests, automatic stop below two people and on End visit
+- Server-side rule and audit, `openvisit_recording` table, import into the site documents folder
+- Player with range streaming from Visit history, same access rule as the visit
+- Setup check for the Jitsi recording service and the inbox
+
+Done when: the recording journey records twice against a Jitsi with Jibri, one stopped by the
+provider and one by the patient leaving, and both play back from Visit history.
+
 ## After 1.0
 
-Recording with consent (Jibri), SMS invitations through the Fax/SMS module, REST endpoints,
+SMS invitations through the Fax/SMS module, REST endpoints,
 billing helpers, a hosted Jitsi option for clinics that do not want to run their own server.

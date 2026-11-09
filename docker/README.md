@@ -33,3 +33,20 @@ Then in OpenEMR:
 - `JVB_ADVERTISE_IPS` must be the public IP, or participants outside the clinic get no media.
 - Upgrades: change `OPENEMR_VERSION` or `JITSI_VERSION` in `.env`, then `docker compose pull`
   and `docker compose up -d`.
+
+## Recording
+
+Off by default. To let providers record visits, set in `.env`:
+
+```sh
+ENABLE_RECORDING=1
+COMPOSE_PROFILES=recording
+JIBRI_XMPP_PASSWORD=<openssl rand -hex 32>
+JIBRI_RECORDER_PASSWORD=<openssl rand -hex 32>
+```
+
+then `docker compose up -d` and turn on **Allow recording** in Administration > Globals >
+OpenVisit. The `jitsi-jibri` container records into the `recordings` volume, which OpenEMR sees
+as `/var/openvisit/recordings`, the default inbox. The recorder needs about 2 GB of RAM while it
+records, and it records one visit at a time. No kernel module is needed; this Jibri captures
+audio through PulseAudio.

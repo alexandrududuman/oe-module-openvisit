@@ -25,10 +25,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   button that is safe to run.
 
 ### Changed
+- Schema 0.6.0: `openvisit_recording` table, applied by `sql/0_5_0-to-0_6_0_upgrade.sql`.
 - Supported OpenEMR: 8.2.0 or newer. On an older release the module stays inactive
   instead of breaking core pages, and its setup check says which version it needs.
 
 ### Added
+- Recording. With Allow recording on and a Jibri next to Jitsi, the provider records once at
+  least two people are in the call, after confirming the patient agreed. Patients and guests see
+  a banner while it runs. It stops by hand, by itself when fewer than two people remain, and
+  before End visit. Files are filed into the site documents folder and play from Visit history,
+  streamed with seeking, for the appointment's provider and administrators; each viewing is
+  logged. The setup check covers the Jitsi recording service and the inbox folder.
+- Reference stack: optional `jitsi-jibri` service (`COMPOSE_PROFILES=recording`) sharing a
+  `recordings` volume with OpenEMR, and `docker/jibri/finalize.sh`.
 - Install journey on a pristine OpenEMR: copy, Composer and upgrade from 0.5.0, through the
   Module Manager, settings, setup check, a first patient and a first visit. Runs in CI on 8.5.0,
   the next OpenEMR release, the oldest supported release, and 8.0.0 as an unsupported core.

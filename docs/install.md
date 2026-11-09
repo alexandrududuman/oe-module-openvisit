@@ -80,6 +80,54 @@ Administration > Globals > **OpenVisit** tab. Set the Jitsi domain, the JWT app 
 app secret to the values configured on the Jitsi server. The other settings have sensible
 defaults.
 
+## Recording visits
+
+A provider can record a visit once at least two people are in the call: the provider and the
+patient or a guest. Recording is off until an administrator turns it on, and it needs a Jibri
+recorder next to the Jitsi server.
+
+How it works:
+
+1. The provider clicks **Record** in the room. The button stays disabled while the provider is
+   alone, and the server refuses the request too.
+2. The provider confirms that the patient agreed. Everyone in the call sees that the visit is
+   recorded: Jitsi shows its recording mark and the patient's page shows a banner.
+3. Recording stops when the provider clicks **Stop recording**, when fewer than two people are
+   left in the call, or when the visit ends.
+4. Jibri writes an MP4 file. OpenEMR moves it into the site's documents folder, which the web
+   server never serves directly, and lists it in Visit history with a **Watch** link. Only the
+   appointment's provider and administrators can watch it; every viewing is logged.
+
+### Setup
+
+On the Jitsi server (the reference stack does this with `ENABLE_RECORDING=1` and
+`COMPOSE_PROFILES=recording` in `docker/.env`):
+
+- `ENABLE_RECORDING=1`, `XMPP_HIDDEN_DOMAIN`, `JIBRI_XMPP_PASSWORD` and
+  `JIBRI_RECORDER_PASSWORD` on prosody, jicofo and web
+- a Jibri container with `JIBRI_FINALIZE_RECORDING_SCRIPT_PATH` pointing at
+  `docker/jibri/finalize.sh` from this repository. The script makes each file streamable, notes
+  its duration and marks it ready for OpenEMR.
+
+Jibri runs Chrome and needs about 2 GB of RAM and `shm_size: 2gb` while it records. It records
+one visit at a time; run more Jibri containers for parallel recordings.
+
+Share Jibri's recordings folder with the OpenEMR server. In the reference stack both containers
+mount the `recordings` volume, Jibri at `/storage` and OpenEMR at `/var/openvisit`, and both run
+as uid 1000. On separate hosts, mount the same folder on both (NFS or similar).
+
+In OpenEMR, Administration > Globals > OpenVisit:
+
+- **Allow recording**: on
+- **Recordings inbox folder**: where OpenEMR sees Jibri's `recordings` folder, by default
+  `/var/openvisit/recordings`
+
+The setup check then confirms that the Jitsi server offers recording and that the inbox and the
+documents folder are usable.
+
+Recordings are files with protected health information. They are kept until someone deletes
+them from `sites/<site>/documents/openvisit/recordings`; include that folder in backups.
+
 ## Developing against the dev stack
 
 The OpenEMR `development-easy-light` docker stack bind-mounts the OpenEMR checkout. Mount this
@@ -112,6 +160,9 @@ npx playwright install chromium
 npm run e2e            # headless
 npm run e2e:headed     # watch it click
 ```
+
+`phase6-recording.spec.js` records twice, plays a file back and needs a Jitsi with Jibri; it
+runs when `RECORDING=1` is set.
 
 `live-call.spec.js` keeps a provider, a phone patient and a guest in one visit and checks every
 few seconds that audio and video still arrive on every side; `CALL_SECONDS` sets how long

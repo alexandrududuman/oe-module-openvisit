@@ -35,9 +35,11 @@ OpenVisit is a native OpenEMR module that talks to a Jitsi Meet server the clini
   and tells you what is wrong.
 - **Reference stack.** A `docker compose` file with OpenEMR, the module, Jitsi Meet, a TURN
   server and a reverse proxy, for a working setup in one command.
+- **Recording**, optional. Once the patient is in the call the provider can record, after
+  confirming consent; everyone sees that the visit is recorded, and the file plays back from
+  the visit history. Needs Jibri next to Jitsi.
 
-Planned after v1: recording into Documents with in-session consent, SMS invitations through the
-Fax/SMS module, REST endpoints.
+Planned after v1: SMS invitations through the Fax/SMS module, REST endpoints.
 
 ## Requirements
 
