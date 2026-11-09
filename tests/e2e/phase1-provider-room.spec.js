@@ -2,7 +2,7 @@
 // Phase 1 journey: admin points OpenVisit at Jitsi, a physician books a telehealth
 // appointment in the calendar, starts the video visit, ends it, and the encounter exists.
 const { test, expect } = require('@playwright/test');
-const { login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, globalsField, saveGlobals } = require('./helpers');
+const { login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, configureOpenVisit } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -15,21 +15,11 @@ test.setTimeout(240_000);
 test.describe('OpenVisit provider room', () => {
   test.skip(JITSI_SECRET === '', 'set JITSI_JWT_SECRET to the Jitsi JWT_APP_SECRET');
 
-  test('admin points OpenVisit at the Jitsi server', async ({ page }) => {
-    await login(page, 'admin');
-    expect(await openMenuEntry(page, 'Admin', 'Config')).toBe(true);
-    let frame = frameBySrc(page, 'edit_globals.php');
-    await frame.locator('ul li a', { hasText: /^OpenVisit$/ }).click();
-    await globalsField(frame, 'Jitsi domain').fill(JITSI_DOMAIN);
-    await globalsField(frame, 'JWT app id').fill(JITSI_APP_ID);
-    await globalsField(frame, 'JWT app secret').fill(JITSI_SECRET);
-    await saveGlobals(page, frame);
-
-    frame = frameBySrc(page, 'edit_globals.php');
-    await frame.locator('ul li a', { hasText: /^OpenVisit$/ }).click();
-    await expect(globalsField(frame, 'Jitsi domain')).toHaveValue(JITSI_DOMAIN);
+  test('admin points OpenVisit at the Jitsi server', async ({ page, browser }) => {
+    await configureOpenVisit(browser, { domain: JITSI_DOMAIN, appId: JITSI_APP_ID, secret: JITSI_SECRET });
 
     // The Telehealth page no longer warns about missing setup.
+    await login(page, 'admin');
     expect(await clickTopMenu(page, 'Telehealth')).toBe(true);
     const today = frameBySrc(page, 'oe-module-openvisit/public/index.php');
     await expect(today.getByRole('heading', { name: /Telehealth visits today/ })).toBeVisible();

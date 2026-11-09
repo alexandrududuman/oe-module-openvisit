@@ -87,4 +87,25 @@ async function saveGlobals(page, frame) {
   await frame.locator('ul li a', { hasText: /^Appearance$/ }).waitFor();
 }
 
-module.exports = { USERS, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, globalsField, saveGlobals };
+// Points OpenVisit at a Jitsi server the way an administrator does, in its own browser context.
+async function configureOpenVisit(browser, { domain, appId, secret }) {
+  const context = await browser.newContext({ ignoreHTTPSErrors: true });
+  const page = await context.newPage();
+  await login(page, 'admin');
+  await openMenuEntry(page, 'Admin', 'Config');
+  let frame = frameBySrc(page, 'edit_globals.php');
+  await frame.locator('ul li a', { hasText: /^OpenVisit$/ }).click();
+  await globalsField(frame, 'Jitsi domain').fill(domain);
+  await globalsField(frame, 'JWT app id').fill(appId);
+  await globalsField(frame, 'JWT app secret').fill(secret);
+  // Wide join windows so a same-day test appointment is joinable whatever the clock says.
+  await globalsField(frame, 'Join window before appointment').fill('1440');
+  await globalsField(frame, 'Join window after appointment').fill('24');
+  await saveGlobals(page, frame);
+  frame = frameBySrc(page, 'edit_globals.php');
+  await frame.locator('ul li a', { hasText: /^OpenVisit$/ }).click();
+  await expect(globalsField(frame, 'Jitsi domain')).toHaveValue(domain);
+  await context.close();
+}
+
+module.exports = { USERS, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, globalsField, saveGlobals, configureOpenVisit };
