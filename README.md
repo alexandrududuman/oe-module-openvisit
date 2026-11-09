@@ -65,7 +65,7 @@ path and the developer setup.
 
 | OpenVisit  | OpenEMR | Jitsi Meet (docker-jitsi-meet) |
 |------------|---------|--------------------------------|
-| 0.4.0      | 8.5.0   | stable-11248-3                 |
+| 0.5.0      | 8.5.0   | stable-11248-3                 |
 
 Every pull request runs unit tests, PHPStan at level max against OpenEMR 8.5, and browser
 journeys that drive a real OpenEMR and Jitsi stack in containers.

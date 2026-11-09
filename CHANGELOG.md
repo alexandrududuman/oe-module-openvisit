@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-09
+
+Hardening after an independent security review, and the reference stack proven on a public
+domain.
+
 ### Security
 - Staff actions on a visit (end, invite, revoke, participant events, opening the room) now
   require the appointment's provider or an administrator; other staff get the same answer as
@@ -90,7 +95,8 @@ First installable release: a provider can run a video visit from the calendar.
 - Install guide in `docs/install.md`.
 - Playwright browser journeys in `tests/e2e/` covering admin, physician and non-clinical users.
 
-[Unreleased]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.1.0...v0.2.0

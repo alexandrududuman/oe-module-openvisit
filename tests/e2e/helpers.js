@@ -3,8 +3,8 @@ const { expect } = require('@playwright/test');
 
 const USERS = {
   admin: { user: 'admin', pass: process.env.ADMIN_PASS ?? 'pass' },
-  physician: { user: 'physician', pass: 'physician' },
-  accountant: { user: 'accountant', pass: 'accountant' },
+  physician: { user: 'physician', pass: process.env.PHYSICIAN_PASS ?? 'physician' },
+  accountant: { user: 'accountant', pass: process.env.ACCOUNTANT_PASS ?? 'accountant' },
 };
 
 async function login(page, role) {
