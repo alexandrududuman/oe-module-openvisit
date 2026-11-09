@@ -7,6 +7,8 @@
 # 3. docker compose up -d
 # 4. Log in to OpenEMR, enable the module in Manage Modules, enter JWT_APP_ID / JWT_APP_SECRET
 #    in Administration > Globals > OpenVisit, then open the module's setup check.
+# Recording: set ENABLE_RECORDING=1, COMPOSE_PROFILES=recording and the two JIBRI_*_PASSWORD
+# values in .env, then turn on Allow recording in Globals > OpenVisit.
 name: openvisit
 
 services:
@@ -47,6 +49,7 @@ services:
       - openemr-sites:/var/www/localhost/htdocs/openemr/sites
       - openemr-logs:/var/log
       - ../:/var/www/localhost/htdocs/openemr/interface/modules/custom_modules/oe-module-openvisit:ro
+      - recordings:/var/openvisit
     environment:
       MYSQL_HOST: mysql
       MYSQL_ROOT_PASS: ${MYSQL_ROOT_PASSWORD}
@@ -77,7 +80,7 @@ services:
       JWT_APP_ID: ${JWT_APP_ID}
       JWT_APP_SECRET: ${JWT_APP_SECRET}
       ENABLE_LOBBY: 1
-      ENABLE_RECORDING: 0
+      ENABLE_RECORDING: ${ENABLE_RECORDING:-0}
       ENABLE_XMPP_WEBSOCKET: 1
       XMPP_MUC_MODULES: token_affiliation,openvisit_lobby_bypass
       XMPP_DOMAIN: meet.jitsi
@@ -85,11 +88,14 @@ services:
       XMPP_GUEST_DOMAIN: guest.meet.jitsi
       XMPP_MUC_DOMAIN: muc.meet.jitsi
       XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
-      XMPP_RECORDER_DOMAIN: recorder.meet.jitsi
+      XMPP_HIDDEN_DOMAIN: hidden.meet.jitsi
       XMPP_SERVER: xmpp.meet.jitsi
       XMPP_BOSH_URL_BASE: http://xmpp.meet.jitsi:5280
       JICOFO_AUTH_PASSWORD: ${JICOFO_AUTH_PASSWORD}
       JVB_AUTH_PASSWORD: ${JVB_AUTH_PASSWORD}
+      JIBRI_XMPP_PASSWORD: ${JIBRI_XMPP_PASSWORD:-}
+      JIBRI_RECORDER_PASSWORD: ${JIBRI_RECORDER_PASSWORD:-}
+      JIBRI_BREWERY_MUC: jibribrewery
       JVB_BREWERY_MUC: jvbbrewery
       JVB_PORT: 10000
       JVB_ADVERTISE_IPS: ${PUBLIC_IP}
@@ -131,6 +137,27 @@ services:
     networks:
       meet.jitsi:
 
+  # Records visits into the shared volume; OpenEMR files them from there. Jibri runs as uid 1000,
+  # like apache in the OpenEMR image, and the volume takes its owner from the image's /storage.
+  jitsi-jibri:
+    image: ghcr.io/jitsi/jibri:${JITSI_VERSION:-stable-11248-3}
+    profiles: [recording]
+    restart: unless-stopped
+    shm_size: 2gb
+    cap_add: [SYS_ADMIN]
+    volumes:
+      - recordings:/storage
+      - ./jibri/finalize.sh:/opt/openvisit/finalize.sh:ro
+    environment:
+      <<: *jitsi-env
+      JIBRI_RECORDING_DIR: /storage/recordings
+      JIBRI_FINALIZE_RECORDING_SCRIPT_PATH: /opt/openvisit/finalize.sh
+      JIBRI_STRIP_DOMAIN_JID: muc
+      DISPLAY: ':0'
+    depends_on: [jitsi-jicofo]
+    networks:
+      meet.jitsi:
+
   coturn:
     image: coturn/coturn:4
     restart: unless-stopped
@@ -142,6 +169,7 @@ services:
       --no-cli --no-multicast-peers --fingerprint --log-file=stdout
 
 volumes:
+  recordings:
   caddy-data:
   caddy-config:
   mysql-data:
