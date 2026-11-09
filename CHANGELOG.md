@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-09
+
+First installable release: a provider can run a video visit from the calendar.
+
 ### Added
 - Provider video room: Start video visit from a Telehealth Visit appointment, opens a Jitsi room
   in a new tab with a per-session HS256 JWT, provider as moderator with lobby on, real start and
@@ -22,3 +26,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Unit tests, PHPStan at level max against OpenEMR 8.5, PHP-CS-Fixer and GitHub Actions CI.
 - Install guide in `docs/install.md`.
 - Playwright browser journeys in `tests/e2e/` covering admin, physician and non-clinical users.
+
+[Unreleased]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/alexandrududuman/oe-module-openvisit/releases/tag/v0.1.0
