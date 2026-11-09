@@ -57,9 +57,13 @@ final class SqlTokenStore implements TokenStore
         );
     }
 
-    public function recordUse(int $id): void
+    public function recordUse(int $id): bool
     {
-        QueryUtils::sqlStatementThrowException('UPDATE openvisit_token SET uses = uses + 1 WHERE id = ?', [$id]);
+        QueryUtils::sqlStatementThrowException(
+            'UPDATE openvisit_token SET uses = uses + 1 WHERE id = ? AND uses < max_uses AND revoked_at IS NULL',
+            [$id],
+        );
+        return Scalars::int(QueryUtils::affectedRows()) === 1;
     }
 
     public function purgeExpiredBefore(string $before): int

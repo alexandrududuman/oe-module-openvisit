@@ -84,16 +84,13 @@ final class VisitServiceTest extends TestCase
         self::assertCount(1, $this->gateway->closedEncounters);
     }
 
-    public function testStartAfterEndReopensTheSameVisit(): void
+    public function testStartAfterEndIsRefused(): void
     {
         $started = $this->service->startForProvider(42, 6);
         $this->service->end($started->visit->id);
 
-        $again = $this->service->startForProvider(42, 6);
-
-        self::assertSame($started->visit->id, $again->visit->id);
-        self::assertSame(Visit::STATUS_ACTIVE, $again->visit->status);
-        self::assertNull($again->visit->endedAt);
+        $this->expectException(VisitException::class);
+        $this->service->startForProvider(42, 6);
     }
 
     public function testEnsureSessionCreatesOnceWithoutStarting(): void

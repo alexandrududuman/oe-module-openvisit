@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace OpenVisit\OpenEMR\Modules\OpenVisit\Gateway;
 
 use MyMailer;
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Logging\EventAuditLogger;
 use OpenEMR\Common\Session\SessionWrapperFactory;
@@ -62,7 +63,7 @@ final class OpenEmrGateway implements ClinicalGateway
                LEFT JOIN patient_data pd ON pd.pid = pce.pc_pid
                LEFT JOIN users u ON u.id = pce.pc_aid
               WHERE pce.pc_eventDate >= ? AND pce.pc_catid = ? AND pce.pc_pid > 0
-              ORDER BY pce.pc_eventDate DESC, pce.pc_startTime DESC',
+              ORDER BY pce.pc_eventDate DESC, pce.pc_startTime DESC LIMIT 500',
             [$sinceDate, $categoryId],
         );
         return array_values(array_map(fn(array $row): Appointment => $this->hydrate($row), $rows));
@@ -94,14 +95,14 @@ final class OpenEmrGateway implements ClinicalGateway
     public function searchPatients(string $query, int $limit = 10): array
     {
         $term = trim($query);
-        if ($term === '') {
+        if (mb_strlen($term) < 2) {
             return [];
         }
-        $like = $term . '%';
+        $like = addcslashes($term, '\\%_') . '%';
         $rows = QueryUtils::fetchRecords(
-            'SELECT pid, fname, lname, DOB FROM patient_data
-              WHERE lname LIKE ? OR fname LIKE ? OR pid = ?
-              ORDER BY lname, fname LIMIT ' . max(1, min($limit, 25)),
+            "SELECT pid, fname, lname, DOB FROM patient_data
+              WHERE lname LIKE ? ESCAPE '\\\\' OR fname LIKE ? ESCAPE '\\\\' OR pid = ?
+              ORDER BY lname, fname LIMIT " . max(1, min($limit, 25)),
             [$like, $like, ctype_digit($term) ? (int) $term : 0],
         );
         $out = [];
@@ -110,7 +111,7 @@ final class OpenEmrGateway implements ClinicalGateway
             $out[] = [
                 'pid' => Scalars::int($row['pid'] ?? null),
                 'name' => trim(Scalars::string($row['fname'] ?? null) . ' ' . Scalars::string($row['lname'] ?? null)),
-                'dob' => Scalars::string($row['DOB'] ?? null),
+                'dob' => substr(Scalars::string($row['DOB'] ?? null), 0, 4),
             ];
         }
         return $out;
@@ -151,6 +152,16 @@ final class OpenEmrGateway implements ClinicalGateway
         return is_numeric($id) ? (int) $id : null;
     }
 
+    public function canSuperviseVisits(): bool
+    {
+        return AclMain::aclCheckCore('admin', 'super');
+    }
+
+    public function canSearchPatients(): bool
+    {
+        return AclMain::aclCheckCore('patients', 'demo');
+    }
+
     public function userName(int $userId): array
     {
         $user = Scalars::stringKeyed($this->users->getUser($userId));
@@ -179,10 +190,7 @@ final class OpenEmrGateway implements ClinicalGateway
     {
         $bag = OEGlobalsBag::getInstance();
         $base = rtrim($bag->getString('site_addr_oath'), '/');
-        if ($base === '') {
-            $base = 'https://' . Scalars::string($_SERVER['HTTP_HOST'] ?? 'localhost');
-        }
-        return $base . $bag->getWebRoot();
+        return $base === '' ? '' : $base . $bag->getWebRoot();
     }
 
     public function siteId(): string

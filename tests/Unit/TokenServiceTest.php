@@ -74,7 +74,7 @@ final class TokenServiceTest extends TestCase
         self::assertSame(TokenCheck::UNKNOWN, $this->service->check('nope', 'ip')->status);
 
         $issued = $this->service->issue($this->visit, $this->appointment, JoinToken::ROLE_GUEST, 'Interpreter', 6);
-        $this->service->revoke($issued->token->id, 6);
+        $this->service->revoke($issued->token->id, $this->visit->id, 6);
         self::assertSame(TokenCheck::REVOKED, $this->service->check($issued->plaintext, 'ip')->status);
 
         $second = $this->service->issue($this->visit, $this->appointment, JoinToken::ROLE_PATIENT, null, 6);
@@ -114,11 +114,61 @@ final class TokenServiceTest extends TestCase
     {
         $guest = $this->service->issue($this->visit, $this->appointment, JoinToken::ROLE_GUEST, 'Family', 6);
         $old = $this->service->issue($this->visit, $this->appointment, JoinToken::ROLE_PATIENT, null, 6);
-        $this->service->revoke($old->token->id, 6);
+        $this->service->revoke($old->token->id, $this->visit->id, 6);
         $current = $this->service->issue($this->visit, $this->appointment, JoinToken::ROLE_PATIENT, null, 6);
 
         self::assertSame($current->token->id, $this->service->activePatientToken($this->visit->id)?->id);
         self::assertNotSame($guest->token->id, $this->service->activePatientToken($this->visit->id)?->id);
+    }
+
+    public function testEndedVisitClosesItsLinksAndEventsAreRefused(): void
+    {
+        $issued = $this->service->issue($this->visit, $this->appointment, JoinToken::ROLE_PATIENT, null, 6);
+        $this->sessions->markStarted($this->visit->id, 1, '2026-11-09 10:00:00');
+        $this->sessions->markEnded($this->visit->id, '2026-11-09 10:20:00');
+
+        self::assertSame(TokenCheck::CLOSED, $this->service->check($issued->plaintext, 'ip')->status);
+        self::assertNull($this->service->resolve($issued->plaintext));
+    }
+
+    public function testUseCapIsEnforcedAtomicallyAndGoodLinksDoNotCountAsAttempts(): void
+    {
+        $issued = $this->service->issue($this->visit, $this->appointment, JoinToken::ROLE_PATIENT, null, 6);
+        for ($i = 0; $i < TokenService::MAX_USES; $i++) {
+            self::assertTrue($this->service->consume($this->tokens->findById($issued->token->id) ?? $issued->token));
+        }
+        self::assertFalse($this->service->consume($this->tokens->findById($issued->token->id) ?? $issued->token));
+        self::assertCount(0, $this->attempts->rows, 'valid links never burn the rate limit');
+    }
+
+    public function testRevokeIgnoresTokensOfOtherSessions(): void
+    {
+        $other = $this->sessions->create(43, 6, 'ov-other');
+        $issued = $this->service->issue($other, $this->appointment, JoinToken::ROLE_GUEST, 'x', 6);
+
+        $this->service->revoke($issued->token->id, $this->visit->id, 6);
+
+        self::assertFalse($this->tokens->findById($issued->token->id)?->isRevoked());
+    }
+
+    public function testPortalLinksAreShortLivedAndThrottledPerPatient(): void
+    {
+        $first = $this->service->issuePortal($this->visit, $this->appointment, 7);
+        self::assertNotNull($first);
+        self::assertSame(3, $first->token->maxUses);
+        self::assertSame('2026-11-09 12:00:00', $first->token->expiresAt);
+        for ($i = 1; $i < TokenService::RATE_LIMIT_ATTEMPTS; $i++) {
+            self::assertNotNull($this->service->issuePortal($this->visit, $this->appointment, 7));
+        }
+        self::assertNull($this->service->issuePortal($this->visit, $this->appointment, 7));
+        self::assertNotNull($this->service->issuePortal($this->visit, $this->appointment, 8), 'other patients are unaffected');
+    }
+
+    public function testJoinUrlRefusesAnEmptySiteAddress(): void
+    {
+        $this->gateway->baseUrl = '';
+        $this->expectException(\OpenVisit\OpenEMR\Modules\OpenVisit\Exception\VisitException::class);
+        $this->service->joinUrl('abc');
     }
 
     public function testUnknownRoleIsRejected(): void
