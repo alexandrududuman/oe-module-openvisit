@@ -1,7 +1,7 @@
 // @ts-check
 // Phase 0 journey: an administrator finds the module, configures it, and a clinician reaches it.
 const { test, expect } = require('@playwright/test');
-const { login, openMenuEntry, clickTopMenu, frameBySrc, globalsField } = require('./helpers');
+const { login, openMenuEntry, clickTopMenu, frameBySrc, globalsField, saveGlobals } = require('./helpers');
 
 const MODULE_PAGE = 'oe-module-openvisit/public/index.php';
 
@@ -10,7 +10,7 @@ test.describe('OpenVisit skeleton', () => {
     await login(page, 'admin');
     expect(await clickTopMenu(page, 'Telehealth')).toBe(true);
     const frame = frameBySrc(page, MODULE_PAGE);
-    await expect(frame.getByRole('heading', { name: 'OpenVisit sessions' })).toBeVisible();
+    await expect(frame.getByRole('heading', { name: /Telehealth visits today/ })).toBeVisible();
     await page.screenshot({ path: 'tests/e2e/results/admin-module-page.png' });
   });
 
@@ -30,7 +30,7 @@ test.describe('OpenVisit skeleton', () => {
     await globalsField(frame, 'Jitsi domain').fill('meet.example.test');
     await globalsField(frame, 'JWT app id').fill('openvisit');
     await globalsField(frame, 'JWT app secret').fill('not-a-real-secret');
-    await frame.getByRole('button', { name: 'Save' }).first().click();
+    await saveGlobals(page, frame);
 
     // The page reloads after save; reopen the tab and read back.
     frame = frameBySrc(page, 'edit_globals.php');
@@ -45,7 +45,7 @@ test.describe('OpenVisit skeleton', () => {
     await globalsField(frame, 'Jitsi domain').fill('');
     await globalsField(frame, 'JWT app id').fill('');
     await globalsField(frame, 'JWT app secret').fill('');
-    await frame.getByRole('button', { name: 'Save' }).first().click();
+    await saveGlobals(page, frame);
     frame = frameBySrc(page, 'edit_globals.php');
     await frame.locator('ul li a', { hasText: /^OpenVisit$/ }).click();
     await expect(globalsField(frame, 'Jitsi domain')).toHaveValue('');
@@ -66,7 +66,7 @@ test.describe('OpenVisit skeleton', () => {
   test('physician sees Telehealth in the main menu and can open it', async ({ page }) => {
     await login(page, 'physician');
     expect(await clickTopMenu(page, 'Telehealth')).toBe(true);
-    await expect(frameBySrc(page, MODULE_PAGE).getByRole('heading', { name: 'OpenVisit sessions' })).toBeVisible();
+    await expect(frameBySrc(page, MODULE_PAGE).getByRole('heading', { name: /Telehealth visits today/ })).toBeVisible();
     await page.screenshot({ path: 'tests/e2e/results/physician-module-page.png' });
   });
 

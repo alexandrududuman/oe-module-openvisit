@@ -12,4 +12,3 @@ composer.lock
 /.php-cs-fixer.cache
 /tests/e2e/results/
 /tests/e2e/report/
-/package-lock.json

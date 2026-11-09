@@ -34,8 +34,12 @@ A provider can open a video room from an appointment.
 - Audit rows for session start and end
 - Unit tests for `JwtService`, `SessionService`, room name generation
 
-Done when: a physician on the demo stack starts a visit from the calendar, lands in a Jitsi
-room as moderator, ends it, and the encounter shows the real duration.
+Done when: the browser journey books a Telehealth Visit appointment as a physician, starts the
+visit from the appointment dialog, joins the Jitsi room as moderator, ends it, sees it as ended
+on the Telehealth page, and the encounter carries the real start and end time. The journey runs
+in GitHub Actions against a containerised OpenEMR 8.5 with demo data and Jitsi.
+
+Moved to phase 4: the camera icon on calendar events (cosmetic, needs the calendar filter event).
 
 ## Phase 2: patient and guest access (v0.2.0)
 

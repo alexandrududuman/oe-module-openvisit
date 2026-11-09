@@ -4,8 +4,9 @@ Self-hosted video visits for [OpenEMR](https://www.open-emr.org) 8.5+, powered b
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
-> **Status: early development.** The module installs and registers its settings, but video
-> visits are not there yet. Follow the [implementation plan](docs/implementation-plan.md).
+> **Status: early development.** A provider can already run a video visit from the calendar
+> against a self-hosted Jitsi; patient links come next. Follow the
+> [implementation plan](docs/implementation-plan.md).
 > The design lives in [docs/design.md](docs/design.md). Issues and comments on it are welcome.
 
 ## Why
@@ -62,9 +63,12 @@ path and the developer setup.
 
 ## Compatibility
 
-| OpenVisit  | OpenEMR | Jitsi Meet            |
-|------------|---------|-----------------------|
-| unreleased | 8.5.0   | set at first release  |
+| OpenVisit  | OpenEMR | Jitsi Meet (docker-jitsi-meet) |
+|------------|---------|--------------------------------|
+| unreleased | 8.5.0   | stable-11248-3                 |
+
+Every pull request runs unit tests, PHPStan at level max against OpenEMR 8.5, and browser
+journeys that drive a real OpenEMR and Jitsi stack in containers.
 
 ## Project
 

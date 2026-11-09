@@ -32,6 +32,7 @@ final class SettingsTest extends TestCase
             GlobalSetting::DATA_TYPE_NUMBER,
             GlobalSetting::DATA_TYPE_BOOL,
             GlobalSetting::DATA_TYPE_ENCRYPTED,
+            GlobalSetting::DATA_TYPE_DEFAULT_VISIT_CATEGORY,
         ];
         foreach (Settings::definitions() as $key => $definition) {
             self::assertContains($definition['type'], $allowed, $key);

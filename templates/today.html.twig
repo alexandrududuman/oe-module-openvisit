@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ 'Telehealth'|xlt }}</title>
+    {{ setupHeader() }}
+</head>
+<body>
+<div class="container-fluid mt-3">
+    <h3>{{ 'Telehealth visits today'|xlt }} <small class="text-muted">{{ date|text }}</small></h3>
+
+    {% if not configured %}
+        <div class="alert alert-warning" id="openvisit-not-configured">
+            {{ 'Video visits are not set up yet.'|xlt }}
+            {% if isAdmin %}{{ 'Fill in the Jitsi domain, JWT app id and JWT app secret in Administration, Globals, OpenVisit.'|xlt }}{% else %}{{ 'Ask your administrator.'|xlt }}{% endif %}
+        </div>
+    {% endif %}
+    {% if not hasCategory %}
+        <div class="alert alert-danger">{{ 'The Telehealth Visit calendar category is missing. Reinstall the module SQL from Manage Modules.'|xlt }}</div>
+    {% endif %}
+
+    {% if rows is empty %}
+        <p id="openvisit-empty">{{ 'No telehealth appointments today. Schedule one in the calendar with the Telehealth Visit category.'|xlt }}</p>
+    {% else %}
+        <table class="table table-sm table-striped" id="openvisit-today">
+            <thead>
+                <tr>
+                    <th>{{ 'Time'|xlt }}</th>
+                    <th>{{ 'Patient'|xlt }}</th>
+                    <th>{{ 'Provider'|xlt }}</th>
+                    <th>{{ 'Visit'|xlt }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for row in rows %}
+                <tr data-eid="{{ row.eid|attr }}">
+                    <td>{{ row.time|text }}</td>
+                    <td>{{ row.patient|text }}</td>
+                    <td>{{ row.provider|text }}</td>
+                    <td>
+                        {{ row.status|text }}
+                        {% if row.duration is not null %}<span class="text-muted">({{ row.duration|text }} {{ 'min'|xlt }})</span>{% endif %}
+                    </td>
+                    <td class="text-right">
+                        {% if configured %}
+                            <a class="btn btn-sm btn-primary" target="_blank" rel="noopener" href="{{ row.url|attr }}">
+                                <i class="fa fa-video mr-1" aria-hidden="true"></i>{% if row.status == 'active' %}{{ 'Rejoin'|xlt }}{% else %}{{ 'Start video visit'|xlt }}{% endif %}
+                            </a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+</body>
+</html>

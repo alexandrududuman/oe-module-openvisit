@@ -24,7 +24,7 @@ reading PHP.
 | Start a visit from an appointment | Button in the appointment dialog and on the calendar event. Room is created on first join. |
 | Encounter opened automatically | When the provider joins. Real start and end time recorded on the session and written to the encounter. |
 | Patient joins from an emailed link | No portal account needed. Single-use, time-limited join token. Works on phone and desktop browsers. |
-| Waiting room | Jitsi lobby. Provider is moderator, patient waits until admitted. |
+| Waiting room | Jitsi lobby. Provider is moderator (JWT claim `context.user.moderator`, read by the `token_affiliation` prosody module), patient waits until admitted. |
 | Locked rooms | Per-session JWT, random room name, short expiry. |
 | Guest links | Interpreter, family member, second clinician. Same token mechanism, separate role. |
 | Invitations | Default: the provider copies the join link and sends it through the clinic's own channel. Optional: email through OpenEMR's configured mailer, one toggle, off by default. |
@@ -112,7 +112,7 @@ All integration is through events and core services. No core file is modified.
 | Button in appointment dialog | `AppointmentRenderEvent::RENDER_BELOW_PATIENT`, `RENDER_JAVASCRIPT` | Render a Start/Join button when the appointment category is marked as telehealth. |
 | Mark telehealth appointments | `openemr_postcalendar_categories` row inserted by `table.sql`, as other modules do | One "Telehealth" category. Clinics can rename it. |
 | Session creation | `AppointmentSetEvent` fires only from the staff calendar dialog, not from REST or the portal | Do not rely on it. Create the session row lazily on the first join request, keyed by appointment id. |
-| Encounter creation | No "encounter created" event in core | Call `AppointmentService::createEncounterForAppointment` when the provider joins, if the appointment has no encounter yet. Record start and end on the session, update the encounter on end. |
+| Encounter creation | No "encounter created" event in core | Call `AppointmentService::createEncounterForAppointment` when the provider joins, if the appointment has no encounter yet. Core stamps the encounter at midnight, so the module sets `form_encounter.date` to the real start and `date_end` when the visit ends. |
 | Calendar decoration | `CalendarUserGetEventsFilter` | Add a camera icon to telehealth events. |
 | Settings | `GlobalsInitializedEvent`, `GlobalsService::createSection` | Section "OpenVisit". Secret stored with `DATA_TYPE_ENCRYPTED`. |
 | Menu entry | `MenuEvent::MENU_UPDATE` | Top-level "Telehealth" right after Calendar, visible to anyone with `patients/appt`. The core Modules menu is hidden from clinicians, so nothing user-facing goes under it. |
@@ -236,8 +236,11 @@ configured. Each check reports pass or fail with a one-line fix.
 - GitHub Actions on every PR: PHPStan, PHPUnit, `composer audit`, PHP-CS-Fixer with the PSR-12
   ruleset.
 - Browser journeys in `tests/e2e/` (Playwright) drive the real OpenEMR UI as each role would:
-  menus, forms, dialogs, portal. Every phase adds its journey and all of them must pass on the
-  dev stack before a phase is done. They are the acceptance test; HTTP checks are not enough.
+  menus, forms, dialogs, portal, the Jitsi pre-join screen. Every phase adds its journey. They
+  run on every pull request in GitHub Actions against `tests/e2e/stack/`: the official
+  `openemr/openemr:8.5.0` image with the module mounted, MariaDB with the OpenEMR demo data,
+  and the official Jitsi images with JWT auth. A journey that only passes on a developer's
+  machine does not count.
 - Manual checklist per release on real devices: patient join on an Android and an iOS phone,
   audio and video quality, lobby admit, end visit.
 

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Staff-side entry point. Lists today's sessions once the visit flow exists.
+ * Staff landing page: today's telehealth appointments and their visit state.
  *
  * @package   OpenVisit
  * @link      https://github.com/alexandrududuman/oe-module-openvisit
@@ -13,8 +13,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../../../globals.php';
 
 use OpenEMR\Common\Acl\AclMain;
-use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Bootstrap;
 
 if (!AclMain::aclCheckCore('patients', 'appt')) {
     http_response_code(403);
@@ -22,5 +22,5 @@ if (!AclMain::aclCheckCore('patients', 'appt')) {
     exit;
 }
 
-$twig = (new TwigContainer(dirname(__DIR__) . '/templates', OEGlobalsBag::getInstance()->getKernel()))->getTwig();
-echo $twig->render('sessions.html.twig');
+$bootstrap = new Bootstrap(OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher());
+echo $bootstrap->visitController()->today(AclMain::aclCheckCore('admin', 'super'));

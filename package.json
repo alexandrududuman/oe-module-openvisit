@@ -4,7 +4,10 @@
   "description": "Browser journeys for OpenVisit, run against the OpenEMR development docker stack",
   "scripts": {
     "e2e": "playwright test",
-    "e2e:headed": "playwright test --headed"
+    "e2e:headed": "playwright test --headed",
+    "stack:up": "tests/e2e/stack/up.sh",
+    "stack:down": "docker compose -f tests/e2e/stack/docker-compose.yml down -v",
+    "e2e:stack": "OPENEMR_URL=http://localhost:${OPENEMR_HTTP_PORT:-8300} JITSI_DOMAIN=localhost:${JITSI_HTTPS_PORT:-8443} JITSI_JWT_SECRET=${JITSI_JWT_SECRET:-openvisit-e2e-secret-change-me} playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0"

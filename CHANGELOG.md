@@ -7,6 +7,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- Provider video room: Start video visit from a Telehealth Visit appointment, opens a Jitsi room
+  in a new tab with a per-session HS256 JWT, provider as moderator with lobby on, real start and
+  end time written to the encounter.
+- Telehealth Visit calendar category installed by the module; Telehealth page lists today's
+  visits with their state and a Start or Rejoin button.
+- Browser journey for the whole provider flow and a GitHub Actions job that boots OpenEMR 8.5,
+  demo data and Jitsi in containers and runs every journey on each PR.
 - Project README, GPL-3.0-or-later license and design document.
 - Implementation plan with phased releases.
 - Installable module skeleton: Composer package, Module Manager lifecycle hooks, idempotent

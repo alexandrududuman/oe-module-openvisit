@@ -54,3 +54,35 @@ jobs:
         run: composer install --no-dev --no-scripts --no-interaction --no-progress --ignore-platform-reqs
       - run: composer install --no-interaction --no-progress
       - run: composer phpstan
+
+  e2e:
+    name: Browser journeys against OpenEMR 8.5 and Jitsi
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      OPENEMR_HTTP_PORT: '8300'
+      JITSI_HTTPS_PORT: '8443'
+      JITSI_JWT_SECRET: openvisit-e2e-secret-change-me
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Boot OpenEMR, demo data, module and Jitsi
+        run: tests/e2e/stack/up.sh
+      - name: Run the journeys
+        run: npm run e2e:stack
+      - name: Stack logs on failure
+        if: failure()
+        run: docker compose -f tests/e2e/stack/docker-compose.yml logs --tail 200
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-results
+          path: |
+            tests/e2e/results
+            tests/e2e/report
+          retention-days: 7
