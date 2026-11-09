@@ -20,6 +20,10 @@
     <h2>{{ 'You left the visit'|xlt }}</h2>
     <p>{{ 'If that was a mistake, reload this page to come back in.'|xlt }}</p>
 </div>
+<div class="openvisit-ended d-none" id="openvisit-over">
+    <h2>{{ 'The visit has ended'|xlt }}</h2>
+    <p>{{ 'The clinic closed the call. You can close this page.'|xlt }}</p>
+</div>
 <script type="application/json" id="openvisit-config">{{ clientConfig }}</script>
 <script src="{{ assets|attr }}/js/join.js" defer></script>
 </body>

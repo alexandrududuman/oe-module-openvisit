@@ -18,6 +18,9 @@ interface ParticipantStore
 
     public function left(int $participantId, string $leftAt): void;
 
+    /** Stamps every row of the session that is still open. */
+    public function closeOpen(int $sessionId, string $leftAt): void;
+
     /** @return list<Participant> oldest first */
     public function findBySession(int $sessionId): array;
 

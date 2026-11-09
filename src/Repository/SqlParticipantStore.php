@@ -37,6 +37,14 @@ final class SqlParticipantStore implements ParticipantStore
         );
     }
 
+    public function closeOpen(int $sessionId, string $leftAt): void
+    {
+        QueryUtils::sqlStatementThrowException(
+            'UPDATE openvisit_participant SET left_at = ? WHERE session_id = ? AND left_at IS NULL',
+            [$leftAt, $sessionId],
+        );
+    }
+
     public function findBySession(int $sessionId): array
     {
         $rows = QueryUtils::fetchRecords(

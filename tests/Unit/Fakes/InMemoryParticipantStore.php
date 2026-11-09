@@ -26,6 +26,13 @@ final class InMemoryParticipantStore implements ParticipantStore
         $this->rows[$participantId] = new Participant($p->id, $p->sessionId, $p->role, $p->displayName, $p->joinedAt, $p->leftAt ?? $leftAt, $p->tokenId);
     }
 
+    public function closeOpen(int $sessionId, string $leftAt): void
+    {
+        foreach ($this->findBySession($sessionId) as $p) {
+            $this->left($p->id, $leftAt);
+        }
+    }
+
     public function findBySession(int $sessionId): array
     {
         return array_values(array_filter($this->rows, static fn(Participant $p): bool => $p->sessionId === $sessionId));

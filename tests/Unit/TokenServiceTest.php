@@ -129,6 +129,15 @@ final class TokenServiceTest extends TestCase
 
         self::assertSame(TokenCheck::CLOSED, $this->service->check($issued->plaintext, 'ip')->status);
         self::assertNull($this->service->resolve($issued->plaintext));
+        self::assertTrue($this->service->visitEndedFor($issued->plaintext));
+    }
+
+    public function testVisitEndedIsOnlyReportedForRealLinksOfEndedVisits(): void
+    {
+        $issued = $this->service->issue($this->visit, $this->appointment, JoinToken::ROLE_PATIENT, null, 6);
+
+        self::assertFalse($this->service->visitEndedFor($issued->plaintext));
+        self::assertFalse($this->service->visitEndedFor('not-a-real-token'));
     }
 
     public function testUseCapIsEnforcedAtomicallyAndGoodLinksDoNotCountAsAttempts(): void

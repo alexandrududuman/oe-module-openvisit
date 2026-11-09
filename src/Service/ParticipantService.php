@@ -48,6 +48,12 @@ final class ParticipantService
         }
     }
 
+    /** Once a visit is over nobody is in it, whether or not their browser said goodbye. */
+    public function closeAll(int $sessionId): void
+    {
+        $this->participants->closeOpen($sessionId, $this->gateway->now()->format(self::DB_FORMAT));
+    }
+
     /** The participant row this link opened and has not closed yet, if any. */
     public function openForToken(int $sessionId, int $tokenId): ?Participant
     {

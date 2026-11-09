@@ -8,6 +8,7 @@
   const meet = document.getElementById('openvisit-meet');
   const ended = document.getElementById('openvisit-ended');
   const endedDetail = document.getElementById('openvisit-ended-detail');
+  const CLOSE_TIMEOUT_MS = 5000;
   let api = null;
 
   // Exposed for tests and support: state is loading | joined | left | ended | error.
@@ -79,6 +80,19 @@
     });
   }
 
+  // Closes the Jitsi conference for everyone, so patient and guests are not left talking to each other.
+  function closeConference() {
+    return new Promise(function (resolve) {
+      if (!api || window.openvisit.state !== 'joined') {
+        resolve();
+        return;
+      }
+      const timer = setTimeout(resolve, CLOSE_TIMEOUT_MS);
+      api.addListener('videoConferenceLeft', function () { clearTimeout(timer); resolve(); });
+      api.executeCommand('endConference');
+    });
+  }
+
   function endVisit() {
     endButton.disabled = true;
     const body = new URLSearchParams({ action: 'end', session_id: String(config.sessionId), csrf_token_form: config.csrf });
@@ -88,6 +102,9 @@
         if (!result.ok) {
           throw new Error(result.error || 'Could not end the visit');
         }
+        return closeConference().then(function () { return result; });
+      })
+      .then(function (result) {
         if (api) {
           api.executeCommand('hangup');
           api.dispose();

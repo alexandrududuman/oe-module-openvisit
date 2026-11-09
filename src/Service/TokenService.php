@@ -133,6 +133,14 @@ final class TokenService
         return $visit === null || $visit->isEnded() ? null : $token;
     }
 
+    /** Whether a real link belongs to a visit that has ended, so the join page can say so. */
+    public function visitEndedFor(string $plaintext): bool
+    {
+        $token = $this->tokens->findByHash(self::hash($plaintext));
+        $visit = $token === null ? null : $this->sessions->findById($token->sessionId);
+        return $visit !== null && $visit->isEnded();
+    }
+
     /** Counts one use atomically; false when the cap was reached by a concurrent request. */
     public function consume(JoinToken $token): bool
     {

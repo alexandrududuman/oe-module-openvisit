@@ -6,6 +6,7 @@
   const status = document.getElementById('openvisit-status');
   const meet = document.getElementById('openvisit-meet');
   const left = document.getElementById('openvisit-left');
+  const over = document.getElementById('openvisit-over');
   let participantId = null;
 
   window.openvisit = { state: 'loading' };
@@ -20,8 +21,11 @@
     const body = new URLSearchParams({ t: config.token, action: action, participant_id: String(participantId || 0), site: config.site });
     return fetch(config.eventsUrl + '?site=' + encodeURIComponent(config.site), { method: 'POST', body: body, credentials: 'same-origin', keepalive: true })
       .then(function (r) { return r.json(); })
-      .then(function (result) { if (result && result.participantId) { participantId = result.participantId; } })
-      .catch(function () {});
+      .then(function (result) {
+        if (result && result.participantId) { participantId = result.participantId; }
+        return result || {};
+      })
+      .catch(function () { return {}; });
   }
 
   function loadApi() {
@@ -57,10 +61,16 @@
       report('joined');
     });
     api.addListener('videoConferenceLeft', function () {
-      report('left');
       meet.classList.add('d-none');
-      left.classList.remove('d-none');
       setState('left', 'You left');
+      report('left').then(function (result) {
+        if (result.ended) {
+          over.classList.remove('d-none');
+          setState('ended', 'The visit has ended');
+          return;
+        }
+        left.classList.remove('d-none');
+      });
     });
     api.addListener('errorOccurred', function (event) {
       if (event && event.error && event.error.isFatal) {

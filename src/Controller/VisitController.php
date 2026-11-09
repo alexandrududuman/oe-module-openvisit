@@ -102,6 +102,7 @@ final class VisitController
         } catch (VisitException $e) {
             return ['ok' => false, 'error' => $e->getMessage()];
         }
+        $this->participants->closeAll($sessionId);
         return ['ok' => true, 'status' => $visit->status, 'durationMinutes' => $visit->durationMinutes()];
     }
 
