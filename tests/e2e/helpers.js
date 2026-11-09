@@ -75,6 +75,27 @@ async function waitForDialogToClose(page, srcPart) {
   await expect(page.locator(`iframe[src*="${srcPart}"]:visible`)).toHaveCount(0, { timeout: 30_000 });
 }
 
+// Opens the appointment at this time in the calendar and returns its dialog. The calendar reloads
+// after a save and when its tab is reopened, which can swallow the click, so the click is retried.
+async function openAppointment(page, time) {
+  const dialog = page.locator('iframe[src*="add_edit_event.php"][src*="eid="]:visible');
+  await expect(async () => {
+    if ((await dialog.count()) === 0) {
+      const calendar = await frameByUrl(page, /\/main\/calendar\//);
+      await calendar.locator('a.event_time', { hasText: time }).last().click({ timeout: 5_000 });
+    }
+    await expect(dialog).toHaveCount(1, { timeout: 5_000 });
+  }).toPass({ timeout: 60_000 });
+  return dialog.contentFrame();
+}
+
+async function deleteAppointment(page, time) {
+  expect(await clickTopMenu(page, 'Calendar')).toBe(true);
+  const dialog = await openAppointment(page, time);
+  await dialog.locator('#form_delete').click();
+  await waitForDialogToClose(page, 'add_edit_event.php');
+}
+
 function globalsField(frame, label) {
   return frame.locator('div.row.form-group', { hasText: label }).first().locator('input, select').first();
 }
@@ -184,4 +205,4 @@ async function expectMediaFlowing(page, remotes, timeout = 60_000) {
   }, { timeout, intervals: [3_000] }).toBe(true);
 }
 
-module.exports = { USERS, callStats, expectMediaFlowing, isModerator, dockedRoom, closeDockedRoom, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, globalsField, saveGlobals, configureOpenVisit };
+module.exports = { USERS, callStats, expectMediaFlowing, isModerator, dockedRoom, closeDockedRoom, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, openAppointment, deleteAppointment, globalsField, saveGlobals, configureOpenVisit };

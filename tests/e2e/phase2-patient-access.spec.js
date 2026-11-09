@@ -3,7 +3,7 @@
 // Phase 2 journey: the physician invites the patient, the patient joins from a phone with
 // nothing but the link, waits in the lobby, is admitted, and the links can be revoked.
 const { test, expect, devices } = require('@playwright/test');
-const { login, clickTopMenu, frameByUrl, waitForDialogToClose, configureOpenVisit, dockedRoom, closeDockedRoom } = require('./helpers');
+const { login, clickTopMenu, frameByUrl, waitForDialogToClose, deleteAppointment, configureOpenVisit, dockedRoom, closeDockedRoom } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -109,11 +109,6 @@ test.describe('OpenVisit patient access', () => {
     await page.screenshot({ path: 'tests/e2e/results/today-after-patient-visit.png' });
 
     // Clean up the appointment.
-    expect(await clickTopMenu(page, 'Calendar')).toBe(true);
-    const calendarAgain = await frameByUrl(page, /\/main\/calendar\//);
-    await calendarAgain.locator('a.event_time', { hasText: '11:00' }).last().click();
-    const edit = await frameByUrl(page, /add_edit_event\.php.*eid=/);
-    await edit.locator('#form_delete').click();
-    await waitForDialogToClose(page, 'add_edit_event.php');
+    await deleteAppointment(page, '11:00');
   });
 });

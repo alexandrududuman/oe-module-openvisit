@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Phase 4 journey: a patient with a portal account finds Join on their telehealth appointment.
 const { test, expect, devices } = require('@playwright/test');
-const { login, frameByUrl, waitForDialogToClose, configureOpenVisit } = require('./helpers');
+const { login, frameByUrl, waitForDialogToClose, deleteAppointment, configureOpenVisit } = require('./helpers');
 
 const JITSI_DOMAIN = process.env.JITSI_DOMAIN ?? 'localhost:8443';
 const JITSI_APP_ID = process.env.JITSI_APP_ID ?? 'openvisit';
@@ -48,7 +48,7 @@ test.describe('OpenVisit patient portal', () => {
     await portal.waitForURL(/portal\/home\.php/, { timeout: 60_000 });
 
     // The appointments card is collapsed on the dashboard; the patient opens it first.
-    const join = portal.locator('a.openvisit-portal-join').first();
+    const join = portal.locator('.card', { hasText: /12:00 pm/i }).locator('a.openvisit-portal-join').first();
     if (!(await join.isVisible().catch(() => false))) {
       await portal.locator('a[href="#appointmentcard"], [data-target="#appointmentcard"]').first().click();
     }
@@ -64,10 +64,6 @@ test.describe('OpenVisit patient portal', () => {
     await phone.close();
 
     // Clean up the appointment.
-    const calendarAgain = await frameByUrl(page, /\/main\/calendar\//);
-    await calendarAgain.locator('a.event_time', { hasText: '12:00' }).last().click();
-    const edit = await frameByUrl(page, /add_edit_event\.php.*eid=/);
-    await edit.locator('#form_delete').click();
-    await waitForDialogToClose(page, 'add_edit_event.php');
+    await deleteAppointment(page, '12:00');
   });
 });
