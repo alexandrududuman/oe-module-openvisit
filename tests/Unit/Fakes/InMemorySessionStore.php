@@ -47,6 +47,11 @@ final class InMemorySessionStore implements SessionStore
         $this->rows[$id] = new Visit($v->id, $v->eid, $v->encounter, $v->roomName, $v->providerId, Visit::STATUS_ENDED, $v->startedAt, $endedAt);
     }
 
+    public function findActive(): array
+    {
+        return array_values(array_filter($this->rows, static fn(Visit $v): bool => $v->status === Visit::STATUS_ACTIVE));
+    }
+
     /** @param list<int> $eids */
     public function findByAppointments(array $eids): array
     {

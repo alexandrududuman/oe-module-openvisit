@@ -75,6 +75,11 @@ final class ModuleConfig
         return ctype_digit($raw) && (int) $raw > 0 ? (int) $raw : null;
     }
 
+    public function sendEmail(): bool
+    {
+        return $this->value(Settings::SEND_EMAIL) === '1';
+    }
+
     public function showPatientLastInitial(): bool
     {
         return $this->value(Settings::SHOW_PATIENT_LAST_INITIAL) === '1';

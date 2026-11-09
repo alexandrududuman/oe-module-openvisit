@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- Patient and guest access: the provider creates join links from an Invite panel in the room;
+  the link opens a public page with no login, shows the patient's first name only, and puts
+  them in the Jitsi lobby until the provider admits them.
+- Links are random, stored hashed, valid only in a window around the appointment, revocable,
+  limited in uses, and the join page is rate limited per client.
+- Optional email invitation through OpenEMR's own mailer, off by default.
+- Participant audit: who joined and left each visit; the Telehealth page shows how many joined.
+- Hourly background service that closes abandoned visits and purges old links.
+- Browser journey with a phone-emulated patient: lobby, admission, revoked and wrong links.
+
+### Changed
+- Schema 0.2.0: `openvisit_participant.token_id`, new `openvisit_join_attempt` table, the
+  `OpenVisitCleanup` background service row. Applied by `sql/0_1_0-to-0_2_0_upgrade.sql`.
+
 ## [0.1.0] - 2026-11-09
 
 First installable release: a provider can run a video visit from the calendar.

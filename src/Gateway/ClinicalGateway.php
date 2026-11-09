@@ -35,5 +35,16 @@ interface ClinicalGateway
 
     public function audit(string $event, string $comment, ?int $pid): void;
 
+    /** Absolute URL of the OpenEMR web root, used to build links patients receive. */
+    public function publicBaseUrl(): string;
+
+    public function siteId(): string;
+
+    /** @return array{email: string, firstName: string, lastName: string} */
+    public function patientContact(int $pid): array;
+
+    /** Sends through OpenEMR's configured mailer. Returns false when mail is not set up or sending failed. */
+    public function sendEmail(string $to, string $toName, string $subject, string $html, string $text): bool;
+
     public function now(): \DateTimeImmutable;
 }

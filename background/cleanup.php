@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * Entry point for the OpenVisitCleanup background service. OpenEMR's runner requires this
+ * file and calls the function named in the background_services row.
+ *
+ * @package   OpenVisit
+ * @link      https://github.com/alexandrududuman/oe-module-openvisit
+ * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU General Public License 3
+ */
+
+declare(strict_types=1);
+
+use OpenEMR\Core\ModulesClassLoader;
+use OpenEMR\Core\OEGlobalsBag;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Bootstrap;
+
+function openvisit_background_cleanup(): void
+{
+    $loader = new ModulesClassLoader(OEGlobalsBag::getInstance()->getProjectDir());
+    $loader->registerNamespaceIfNotExists('OpenVisit\\OpenEMR\\Modules\\OpenVisit\\', dirname(__DIR__) . DIRECTORY_SEPARATOR . 'src');
+    $bootstrap = new Bootstrap(OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher());
+    $result = $bootstrap->cleanup()->run();
+    error_log(sprintf(
+        'OpenVisit cleanup: %d visits closed, %d tokens purged, %d attempts purged',
+        $result['closedVisits'],
+        $result['purgedTokens'],
+        $result['purgedAttempts'],
+    ));
+}

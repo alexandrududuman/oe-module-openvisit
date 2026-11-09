@@ -30,4 +30,7 @@ interface SessionStore
      * @return array<int, Visit> keyed by appointment id
      */
     public function findByAppointments(array $eids): array;
+
+    /** @return list<Visit> visits that are still marked active */
+    public function findActive(): array;
 }

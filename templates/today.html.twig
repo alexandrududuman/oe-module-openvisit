@@ -28,6 +28,7 @@
                     <th>{{ 'Patient'|xlt }}</th>
                     <th>{{ 'Provider'|xlt }}</th>
                     <th>{{ 'Visit'|xlt }}</th>
+                    <th>{{ 'Joined'|xlt }}</th>
                     <th></th>
                 </tr>
             </thead>
@@ -41,6 +42,7 @@
                         {{ row.status|text }}
                         {% if row.duration is not null %}<span class="text-muted">({{ row.duration|text }} {{ 'min'|xlt }})</span>{% endif %}
                     </td>
+                    <td class="openvisit-joined">{{ row.joined|text }}</td>
                     <td class="text-right">
                         {% if configured %}
                             <a class="btn btn-sm btn-primary" target="_blank" rel="noopener" href="{{ row.url|attr }}">

@@ -1,6 +1,8 @@
 # Needs an OpenEMR 8.5 checkout with vendor/ installed. Point OPENEMR_ROOT at it.
 parameters:
     level: max
+    # Lowest supported PHP, so syntax that only newer PHP accepts is reported here, not in CI.
+    phpVersion: 80300
     paths:
         - src
         - public

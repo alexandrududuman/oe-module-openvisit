@@ -15,8 +15,12 @@ use OpenVisit\OpenEMR\Modules\OpenVisit\Config\ModuleConfig;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Exception\VisitException;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\ClinicalGateway;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Model\Appointment;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Model\Visit;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SessionStore;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\InviteService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\JitsiJwt;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\ParticipantService;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\TokenService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\VisitService;
 use Twig\Environment;
 
@@ -29,6 +33,9 @@ final class VisitController
         private readonly ClinicalGateway $gateway,
         private readonly VisitService $visits,
         private readonly SessionStore $sessions,
+        private readonly InviteService $invites,
+        private readonly TokenService $tokens,
+        private readonly ParticipantService $participants,
         private readonly Environment $twig,
     ) {}
 
@@ -68,6 +75,7 @@ final class VisitController
             'csrf' => $csrfToken,
             'endUrl' => Bootstrap::MODULE_PATH . '/public/api.php',
             'moderator' => true,
+            'emailEnabled' => $this->invites->emailEnabled(),
         ];
 
         return $this->twig->render('visit.html.twig', [
@@ -90,6 +98,48 @@ final class VisitController
         return ['ok' => true, 'status' => $visit->status, 'durationMinutes' => $visit->durationMinutes()];
     }
 
+    /** @return array<string, mixed> */
+    public function invite(string $action, int $sessionId, string $role, ?string $label, int $tokenId, int $userId): array
+    {
+        $visit = $this->sessions->findById($sessionId);
+        $appointment = $visit === null ? null : $this->gateway->appointment($visit->eid);
+        if ($visit === null || $appointment === null) {
+            return ['ok' => false, 'error' => xl('This visit does not exist.')];
+        }
+        try {
+            switch ($action) {
+                case 'invite.list':
+                    return ['ok' => true, 'links' => $this->invites->list($sessionId), 'emailEnabled' => $this->invites->emailEnabled()];
+                case 'invite.create':
+                    if (!InviteService::isAssignableRole($role)) {
+                        return ['ok' => false, 'error' => 'bad role'];
+                    }
+                    return ['ok' => true, 'link' => $this->invites->create($visit, $appointment, $role, $label, $userId)];
+                case 'invite.revoke':
+                    $this->tokens->revoke($tokenId, $userId);
+                    return ['ok' => true];
+                case 'invite.email':
+                    $link = $this->invites->create($visit, $appointment, 'patient', null, $userId);
+                    $sentTo = $this->invites->emailPatient($visit, $appointment, $link['url'], $userId);
+                    return ['ok' => true, 'sentTo' => $sentTo, 'link' => $link];
+            }
+        } catch (VisitException $e) {
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+        return ['ok' => false, 'error' => 'unknown action'];
+    }
+
+    /** @return array{ok: bool, participantId?: int} */
+    public function participant(string $action, int $sessionId, int $participantId, string $displayName, string $userAgent): array
+    {
+        if ($action === 'participant.joined') {
+            $p = $this->participants->joined($sessionId, 'provider', $displayName, null, $userAgent);
+            return ['ok' => true, 'participantId' => $p->id];
+        }
+        $this->participants->left($participantId, $sessionId);
+        return ['ok' => true];
+    }
+
     /** Today's telehealth appointments with their visit state. */
     public function today(bool $isAdmin): string
     {
@@ -97,6 +147,7 @@ final class VisitController
         $today = $this->gateway->now()->format('Y-m-d');
         $appointments = $categoryId === null ? [] : $this->gateway->appointmentsOn($today, $categoryId);
         $visits = $this->sessions->findByAppointments(array_values(array_map(static fn(Appointment $a): int => $a->eid, $appointments)));
+        $joined = $this->participants->counts(array_values(array_map(static fn(Visit $v): int => $v->id, $visits)));
 
         $rows = [];
         foreach ($appointments as $appointment) {
@@ -108,6 +159,7 @@ final class VisitController
                 'provider' => trim($appointment->providerFirstName . ' ' . $appointment->providerLastName),
                 'status' => $visit === null ? 'not started' : $visit->status,
                 'duration' => $visit?->durationMinutes(),
+                'joined' => $visit === null ? 0 : ($joined[$visit->id] ?? 0),
                 'url' => Bootstrap::MODULE_PATH . '/public/visit.php?eid=' . $appointment->eid,
             ];
         }

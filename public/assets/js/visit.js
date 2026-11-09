@@ -64,8 +64,10 @@
         api.executeCommand('toggleLobby', true);
         api.executeCommand('subject', config.subject);
       }
+      reportProvider('participant.joined');
     });
     api.addListener('videoConferenceLeft', function () {
+      reportProvider('participant.left');
       if (window.openvisit.state !== 'ended') {
         setState('left', 'You left the room. Rejoin by reloading this page, or end the visit.');
       }
@@ -106,6 +108,116 @@
   }
 
   endButton.addEventListener('click', endVisit);
+
+  // ----- Invite panel -----
+  const panel = document.getElementById('openvisit-invite');
+  const toggle = document.getElementById('openvisit-invite-toggle');
+  const patientLink = document.getElementById('openvisit-patient-link');
+  const createPatient = document.getElementById('openvisit-patient-link-create');
+  const copyPatient = document.getElementById('openvisit-patient-link-copy');
+  const emailPatient = document.getElementById('openvisit-patient-link-email');
+  const guestForm = document.getElementById('openvisit-guest-form');
+  const guestLabel = document.getElementById('openvisit-guest-label');
+  const list = document.getElementById('openvisit-links');
+  const message = document.getElementById('openvisit-invite-message');
+  window.openvisit.links = [];
+
+  function say(text, isError) {
+    message.textContent = text;
+    message.classList.toggle('error', Boolean(isError));
+  }
+
+  function post(fields) {
+    const body = new URLSearchParams(Object.assign({ session_id: String(config.sessionId), csrf_token_form: config.csrf }, fields));
+    return fetch(config.endUrl, { method: 'POST', body: body, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (result) {
+        if (!result.ok) { throw new Error(result.error || 'Request failed'); }
+        return result;
+      });
+  }
+
+  function renderLinks(links) {
+    window.openvisit.links = links;
+    list.innerHTML = '';
+    links.forEach(function (link) {
+      const item = document.createElement('li');
+      const text = document.createElement('span');
+      text.textContent = (link.role === 'guest' ? (link.label || 'Guest') : 'Patient') + ' · ' + (link.revoked ? 'revoked' : 'until ' + link.expiresAt) + (link.uses ? ' · opened ' + link.uses + 'x' : '');
+      if (link.revoked) { text.classList.add('revoked'); }
+      item.appendChild(text);
+      if (!link.revoked) {
+        const revoke = document.createElement('button');
+        revoke.type = 'button';
+        revoke.className = 'btn btn-outline-danger btn-sm';
+        revoke.textContent = 'Revoke';
+        revoke.dataset.tokenId = String(link.id);
+        revoke.addEventListener('click', function () {
+          post({ action: 'invite.revoke', token_id: String(link.id) }).then(refresh).then(function () { say('Link revoked'); }).catch(function (e) { say(e.message, true); });
+        });
+        item.appendChild(revoke);
+      }
+      list.appendChild(item);
+    });
+  }
+
+  function refresh() {
+    return post({ action: 'invite.list' }).then(function (result) {
+      renderLinks(result.links);
+      emailPatient.classList.toggle('d-none', !result.emailEnabled);
+    });
+  }
+
+  function showNewLink(link) {
+    if (link.role === 'patient') {
+      patientLink.value = link.url;
+      copyPatient.disabled = false;
+      window.openvisit.patientLink = link.url;
+    } else {
+      window.openvisit.lastGuestLink = link.url;
+      say('Guest link for ' + (link.label || 'guest') + ' copied below. Share it once; it is not shown again.');
+      patientLink.value = link.url;
+      copyPatient.disabled = false;
+    }
+  }
+
+  toggle.addEventListener('click', function () {
+    panel.classList.toggle('d-none');
+    if (!panel.classList.contains('d-none')) { refresh().catch(function (e) { say(e.message, true); }); }
+  });
+  createPatient.addEventListener('click', function () {
+    post({ action: 'invite.create', role: 'patient' })
+      .then(function (result) { showNewLink(result.link); say('Patient link ready. Earlier patient links keep working until they expire; revoke them below if needed.'); return refresh(); })
+      .catch(function (e) { say(e.message, true); });
+  });
+  copyPatient.addEventListener('click', function () {
+    const value = patientLink.value;
+    const done = function () { say('Copied'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).then(done, function () { patientLink.select(); document.execCommand('copy'); done(); });
+    } else {
+      patientLink.select(); document.execCommand('copy'); done();
+    }
+  });
+  emailPatient.addEventListener('click', function () {
+    post({ action: 'invite.email' })
+      .then(function (result) { showNewLink(result.link); say('Email sent to ' + result.sentTo); return refresh(); })
+      .catch(function (e) { say(e.message, true); });
+  });
+  guestForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    post({ action: 'invite.create', role: 'guest', label: guestLabel.value })
+      .then(function (result) { showNewLink(result.link); guestLabel.value = ''; return refresh(); })
+      .catch(function (e) { say(e.message, true); });
+  });
+
+  // ----- Participant audit for the provider -----
+  let participantId = null;
+  function reportProvider(action) {
+    return post({ action: action, participant_id: String(participantId || 0), display_name: config.displayName })
+      .then(function (result) { if (result.participantId) { participantId = result.participantId; } })
+      .catch(function () {});
+  }
 
   loadApi().then(join).catch(function (error) {
     setState('error', error.message);

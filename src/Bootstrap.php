@@ -13,14 +13,22 @@ namespace OpenVisit\OpenEMR\Modules\OpenVisit;
 use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Config\ModuleConfig;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Controller\JoinController;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Controller\VisitController;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\ClinicalGateway;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\OpenEmrGateway;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\AppointmentListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\GlobalsListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\MenuListener;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlAttemptStore;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlParticipantStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlSessionStore;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlTokenStore;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\CleanupService;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\InviteService;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\ParticipantService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\RoomNameGenerator;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\TokenService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\VisitService;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Twig\Environment;
@@ -57,9 +65,38 @@ final class Bootstrap
         return new VisitService(new SqlSessionStore(), $this->gateway(), new RoomNameGenerator());
     }
 
+    public function tokens(): TokenService
+    {
+        return new TokenService(new SqlTokenStore(), new SqlSessionStore(), new SqlAttemptStore(), $this->gateway(), $this->config());
+    }
+
+    public function participants(): ParticipantService
+    {
+        return new ParticipantService(new SqlParticipantStore(), $this->gateway());
+    }
+
+    public function cleanup(): CleanupService
+    {
+        return new CleanupService(new SqlSessionStore(), new SqlTokenStore(), new SqlAttemptStore(), $this->tokens(), $this->gateway());
+    }
+
     public function visitController(): VisitController
     {
-        return new VisitController($this->config(), $this->gateway(), $this->visits(), new SqlSessionStore(), $this->twig());
+        return new VisitController(
+            $this->config(),
+            $this->gateway(),
+            $this->visits(),
+            new SqlSessionStore(),
+            new InviteService($this->tokens(), $this->gateway(), $this->config()),
+            $this->tokens(),
+            $this->participants(),
+            $this->twig(),
+        );
+    }
+
+    public function joinController(): JoinController
+    {
+        return new JoinController($this->config(), $this->gateway(), $this->tokens(), $this->participants(), $this->twig());
     }
 
     public function twig(): Environment

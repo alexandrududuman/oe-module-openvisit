@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>{{ 'Video visit'|xlt }}</title>
+    <link rel="stylesheet" href="{{ assets|attr }}/css/visit.css">
+</head>
+<body class="openvisit-room openvisit-join">
+<div class="openvisit-ended" id="openvisit-problem" data-status="{{ status|attr }}">
+    <h2>{{ 'Video visit'|xlt }}</h2>
+    <p>{{ message|text }}</p>
+    {% if opensAt %}<p class="text-muted">{{ 'The link opens at'|xlt }} {{ opensAt|text }}.</p>{% endif %}
+</div>
+</body>
+</html>

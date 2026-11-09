@@ -170,8 +170,11 @@ Guest links work the same with role `guest` and no patient name shown. Tokens ar
 the session page. The join window and expiry are globals.
 
 `join.php` runs outside the staff session. It includes `globals.php` with `$ignoreAuth = true`,
-authenticates by token only, and exposes no other action. It is rate limited per IP and per
-token.
+authenticates by token only, and exposes no other action. Because there is no session yet the
+link carries `site=<site id>`. The page is rate limited per client address (10 attempts per 10
+minutes, counted in `openvisit_join_attempt`) and every link has a use limit of 20 opens. Join and
+leave events from the patient's browser go to `join-events.php`, again authenticated by the link,
+and are confirmed server-side into `openvisit_participant`.
 
 ## Data model
 
