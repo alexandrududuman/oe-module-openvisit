@@ -73,6 +73,7 @@ journeys that drive a real OpenEMR and Jitsi stack in containers.
 ## Project
 
 - [Design document](docs/design.md): scope, decisions, what is out of v1, open questions.
+- [Reference docker stack](docker/README.md): OpenEMR, Jitsi, coturn and TLS in one command.
 - [Changelog](CHANGELOG.md)
 - [Security policy](SECURITY.md)
 

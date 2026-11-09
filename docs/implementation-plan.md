@@ -68,8 +68,9 @@ A clinic administrator can get a working stack without help.
 - `docs/install.md` complete, with the self-check output explained
 - `docs/jitsi.md`: how to configure an existing Jitsi server for the module
 
-Done when: a fresh machine runs the reference stack from the README in one command and the
-self-check reports all green.
+Done when: the reference stack validates and documents a one-command clinic install, and the
+browser journey opens the setup check as an administrator and reads a ready verdict with every
+check explained.
 
 ## Phase 4: portal and clinical polish (v0.4.0)
 

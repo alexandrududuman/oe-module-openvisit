@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- Setup check in the Module Manager config page: settings, Jitsi reachability, IFrame API,
+  authentication configuration, JWT signing, public address, mailer and cleanup service, each
+  with a plain-language fix.
+- Reference docker stack in `docker/`: OpenEMR with the module, MariaDB, Jitsi Meet with JWT,
+  coturn and Caddy with Let's Encrypt.
+
 ## [0.2.0] - 2026-11-09
 
 Patients and guests can join from a link, with a lobby. Nothing to install on their side.
