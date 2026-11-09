@@ -125,6 +125,18 @@ Pulled forward from after 1.0.
 Done when: the recording journey records twice against a Jitsi with Jibri, one stopped by the
 provider and one by the patient leaving, and both play back from Visit history.
 
+## Phase 7: the visit floats over OpenEMR
+
+- Floating window on OpenEMR's main page, loaded through `ScriptFilterEvent` and
+  `StyleFilterEvent`; Jitsi still runs only inside the module's own room page, framed by it
+- Full and corner modes, drag, mute, camera, admit from the lobby, leave, open in a tab
+- Floating recording player, preview frames from Jibri, video visit card on the encounter page
+
+Done when: a journey starts a visit, moves to the calendar while the call shrinks into the
+corner, admits the patient from the small window, mutes from it and rejoins after a new login;
+the recording journey plays a file in the floating player while the provider works elsewhere
+and finds both recordings on the encounter page.
+
 ## After 1.0
 
 SMS invitations through the Fax/SMS module, REST endpoints,

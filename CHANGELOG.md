@@ -30,6 +30,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   instead of breaking core pages, and its setup check says which version it needs.
 
 ### Added
+- The visit floats over OpenEMR. Start or Rejoin opens the room in a window on OpenEMR's main
+  page instead of a browser tab; it can be dragged, and it tucks into a corner as a small window
+  when the provider moves elsewhere in OpenEMR, like Google Meet's picture in picture. The small
+  window keeps the microphone, camera, expand and leave controls, names whoever is waiting in the
+  lobby with an Admit button, and its rim shows the state: connected, someone waiting, recording.
+  The window can also be opened as a browser tab.
+- Recordings play in a floating player that keeps playing on top while the provider works.
+  Each recording gets a preview frame, and the encounter page shows the video visit with its
+  times, the people who joined and the recordings.
 - Recording. With Allow recording on and a Jibri next to Jitsi, the provider records once at
   least two people are in the call, after confirming the patient agreed. Patients and guests see
   a banner while it runs. It stops by hand, by itself when fewer than two people remain, and

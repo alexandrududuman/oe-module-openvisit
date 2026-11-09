@@ -35,6 +35,8 @@ OpenVisit is a native OpenEMR module that talks to a Jitsi Meet server the clini
   and tells you what is wrong.
 - **Reference stack.** A `docker compose` file with OpenEMR, the module, Jitsi Meet, a TURN
   server and a reverse proxy, for a working setup in one command.
+- **A call that floats.** The visit opens in a window over OpenEMR. Moving elsewhere tucks it
+  into a corner, like Google Meet, with mute, camera, admit and leave at hand.
 - **Recording**, optional. Once the patient is in the call the provider can record, after
   confirming consent; everyone sees that the visit is recorded, and the file plays back from
   the visit history. Needs Jibri next to Jitsi.
@@ -87,4 +89,5 @@ the design.
 ## License
 
 Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later, the same license as
-OpenEMR. See [LICENSE](LICENSE).
+OpenEMR. See [LICENSE](LICENSE). The bundled Atkinson Hyperlegible font is copyright Braille
+Institute of America under the SIL Open Font License, see `public/assets/fonts/OFL.txt`.

@@ -203,6 +203,17 @@ Added in 0.6.0. Off by default; it needs Jibri, Jitsi's recorder, next to the Ji
   Core's document store reads files into memory and may encrypt them, which rules out streaming
   long videos with seeking.
 
+## Floating window
+
+The room page used to open in a browser tab. Now OpenEMR's main page (`interface/main/tabs/
+main.php`) gets `public/assets/js/dock.js` and `dock.css` through the core script and style filter
+events, for users with `patients/appt`. Pages in tabs call `window.top.openvisitDock`; without it
+they open a tab as before. The window frames the module's own room page, so the Jitsi IFrame API
+is still never loaded into a core page. Room and window talk through `postMessage`, same origin
+only: the window sends mute, camera, admit, leave and the full or corner mode; the room reports
+its state, mute flags, recording and who is waiting. OpenEMR logs out when its main page is
+reloaded, which ends the call; the provider rejoins from the Telehealth page.
+
 ## Data model
 
 ```sql
