@@ -1,0 +1,3 @@
+# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
+# Demo video and preview stay on GitHub; installs do not need them.
+/docs/media export-ignore
