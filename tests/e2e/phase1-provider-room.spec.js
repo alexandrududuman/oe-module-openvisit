@@ -51,6 +51,8 @@ test.describe('OpenVisit provider room', () => {
     // The time link opens the appointment; the patient name link would open the chart.
     const eventTime = calendar.locator('a.event_time', { hasText: '10:00' }).last();
     await expect(eventTime).toBeVisible();
+    // Telehealth appointments are marked in the calendar (camera icon via a module class).
+    await expect(calendar.locator('.openvisit_telehealth', { hasText: PATIENT.last }).first()).toBeVisible();
     await eventTime.click();
     const edit = await frameByUrl(page, /add_edit_event\.php.*eid=/);
     await edit.locator('#form_patient').waitFor();
