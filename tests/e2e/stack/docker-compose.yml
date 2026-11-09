@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 # Throwaway stack for the browser journeys: OpenEMR 8.5 (official image) with the module
 # mounted in, MariaDB, and Jitsi Meet with JWT auth. Used by CI and by `npm run stack:up`.
 name: openvisit-e2e

@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Telehealth page: unscheduled visits. Search a patient, start, and the room opens in a new tab.
 (function () {
   'use strict';

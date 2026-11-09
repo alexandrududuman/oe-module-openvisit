@@ -1,4 +1,5 @@
 // @ts-check
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Live call journey: a provider, a patient on a phone and a guest stay in one visit, media is
 // checked on every side for the whole call, and the patient drops out and is let back in.
 const { test, expect, devices } = require('@playwright/test');

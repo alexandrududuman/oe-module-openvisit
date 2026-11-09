@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 # Installs OpenVisit on a pristine OpenEMR the way a clinic would, then runs the install journey.
 # Usage: tests/e2e/install/run.sh [copy|composer|upgrade]
 #   copy      release files copied into custom_modules (manual download)

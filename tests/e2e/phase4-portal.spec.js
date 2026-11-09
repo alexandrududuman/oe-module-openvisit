@@ -1,4 +1,5 @@
 // @ts-check
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Phase 4 journey: a patient with a portal account finds Join on their telehealth appointment.
 const { test, expect, devices } = require('@playwright/test');
 const { login, frameByUrl, waitForDialogToClose, configureOpenVisit } = require('./helpers');

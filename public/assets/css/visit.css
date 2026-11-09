@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later. */
 /* The public join page does not load the OpenEMR theme, so the few utilities it needs live here. */
 .d-none { display: none !important; }
 .text-muted { color: #999; }

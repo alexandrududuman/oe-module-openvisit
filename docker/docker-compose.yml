@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 # OpenVisit reference stack for a clinic: OpenEMR with the module, MariaDB, Jitsi Meet with JWT
 # auth, coturn for participants behind strict NATs, and Caddy as the TLS reverse proxy.
 #

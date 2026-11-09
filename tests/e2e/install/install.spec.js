@@ -1,4 +1,5 @@
 // @ts-check
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Install journey: an administrator adds OpenVisit to an OpenEMR that has never had it (or has an
 // older release), sets it up by following the setup check, and runs a first visit with a patient
 // on a phone. Run through tests/e2e/install/run.sh, which prepares the pristine OpenEMR.

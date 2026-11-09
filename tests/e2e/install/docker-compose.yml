@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 # Pristine OpenEMR without the module. run.sh adds it the way a clinic would, then the install
 # journey registers, installs, enables and uses it through the browser.
 name: openvisit-install

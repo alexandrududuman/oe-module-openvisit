@@ -1,4 +1,5 @@
 // @ts-check
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Phase 4b journey: a physician starts a visit with a patient who has no appointment, ends it,
 // and finds it in the visit history.
 const { test, expect } = require('@playwright/test');

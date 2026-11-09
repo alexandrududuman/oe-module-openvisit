@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Provider room: loads the Jitsi IFrame API from the clinic's own server and drives the visit.
 (function () {
   'use strict';

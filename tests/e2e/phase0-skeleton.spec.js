@@ -1,4 +1,5 @@
 // @ts-check
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Phase 0 journey: an administrator finds the module, configures it, and a clinician reaches it.
 const { test, expect } = require('@playwright/test');
 const { login, openMenuEntry, clickTopMenu, frameBySrc, globalsField, saveGlobals } = require('./helpers');

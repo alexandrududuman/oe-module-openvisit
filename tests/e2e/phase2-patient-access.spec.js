@@ -1,4 +1,5 @@
 // @ts-check
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Phase 2 journey: the physician invites the patient, the patient joins from a phone with
 // nothing but the link, waits in the lobby, is admitted, and the links can be revoked.
 const { test, expect, devices } = require('@playwright/test');

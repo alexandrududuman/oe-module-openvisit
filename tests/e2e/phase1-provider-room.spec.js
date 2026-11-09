@@ -1,4 +1,5 @@
 // @ts-check
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Phase 1 journey: admin points OpenVisit at Jitsi, a physician books a telehealth
 // appointment in the calendar, starts the video visit, ends it, and the encounter exists.
 const { test, expect } = require('@playwright/test');

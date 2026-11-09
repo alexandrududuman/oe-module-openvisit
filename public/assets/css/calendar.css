@@ -1,3 +1,4 @@
+/* Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later. */
 /* Telehealth appointments in the staff calendar get a camera icon in front of the time. */
 .openvisit_telehealth .event_time::before,
 .openvisit_telehealth a.event_time::before {

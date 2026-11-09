@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later.
 // Patient and guest room: joins with a non-moderator token and waits in the lobby until admitted.
 (function () {
   'use strict';
