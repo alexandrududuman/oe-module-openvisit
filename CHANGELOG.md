@@ -7,6 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- Telehealth appointments carry a camera icon in the staff calendar.
 - Unscheduled visits: on the Telehealth page a provider searches a patient and starts a visit
   right away; the module books the appointment in the Telehealth Visit category first, so the
   encounter and audit work exactly as for scheduled visits. Governed by the Allow ad-hoc visits
