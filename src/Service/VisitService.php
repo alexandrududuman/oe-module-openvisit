@@ -12,6 +12,7 @@ namespace OpenVisit\OpenEMR\Modules\OpenVisit\Service;
 
 use OpenVisit\OpenEMR\Modules\OpenVisit\Exception\VisitException;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\ClinicalGateway;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Model\Appointment;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Model\StartedVisit;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Model\Visit;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SessionStore;
@@ -51,6 +52,13 @@ final class VisitService
         $this->gateway->audit('openvisit-start', sprintf('session %d room %s', $visit->id, $visit->roomName), $appointment->pid);
 
         return new StartedVisit($this->reload($visit->id), $appointment);
+    }
+
+    /** The room for an appointment, created on demand but not started: patients may arrive first. */
+    public function ensureSession(Appointment $appointment): Visit
+    {
+        return $this->sessions->findByAppointment($appointment->eid)
+            ?? $this->sessions->create($appointment->eid, $appointment->providerId, $this->rooms->generate());
     }
 
     /** Closes the visit and stamps the encounter end time. Ending twice is harmless. */
