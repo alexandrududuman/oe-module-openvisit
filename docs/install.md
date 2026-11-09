@@ -75,4 +75,36 @@ npm run e2e:headed     # watch it click
 
 Set `OPENEMR_URL` if the stack is not on `https://localhost:9300`. The journeys use the demo
 users (`admin/pass`, `physician/physician`, `accountant/accountant`) and leave the settings as
-they found them.
+they found them. The provider-room journey needs a Jitsi server with JWT auth and the
+`token_affiliation` module; pass `JITSI_DOMAIN` and `JITSI_JWT_SECRET`.
+
+### The same stack CI uses
+
+`tests/e2e/stack/` holds a throwaway compose stack: official `openemr/openemr:8.5.0`, MariaDB,
+and the official Jitsi images with JWT auth. `up.sh` boots it, loads the OpenEMR demo data,
+installs and enables the module.
+
+```sh
+npm run stack:up        # OpenEMR on http://localhost:8300, Jitsi on https://localhost:8443
+npm run e2e:stack       # journeys against that stack
+npm run stack:down      # remove containers and volumes
+```
+
+Override ports with `OPENEMR_HTTP_PORT`, `OPENEMR_HTTPS_PORT`, `JITSI_HTTPS_PORT`, `JVB_PORT`
+when the development stack is already using the defaults.
+
+### Jitsi server requirements
+
+Any Jitsi Meet with JWT authentication works. With `docker-jitsi-meet` set at least:
+
+```
+ENABLE_AUTH=1
+AUTH_TYPE=jwt
+JWT_APP_ID=<app id you enter in OpenEMR>
+JWT_APP_SECRET=<secret you enter in OpenEMR>
+ENABLE_LOBBY=1
+XMPP_MUC_MODULES=token_affiliation
+```
+
+`token_affiliation` makes the provider a moderator from the JWT claim and keeps patients and
+guests in the lobby until admitted.
