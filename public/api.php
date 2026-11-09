@@ -60,6 +60,10 @@ if (str_starts_with($action, 'invite.')) {
     );
     $respond($result, ($result['ok'] ?? false) === true ? 200 : 400);
 }
+if ($action === 'patient.search' || $action === 'visit.adhoc') {
+    $result = $controller->adhoc($action, (string) $request->request->get('q', ''), $request->request->getInt('pid'), $userId);
+    $respond($result, ($result['ok'] ?? false) === true ? 200 : 400);
+}
 if (str_starts_with($action, 'participant.')) {
     $result = $controller->participant(
         $action,

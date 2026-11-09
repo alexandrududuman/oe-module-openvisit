@@ -140,8 +140,60 @@ final class VisitController
         return ['ok' => true];
     }
 
+    /** @return array<string, mixed> */
+    public function adhoc(string $action, string $query, int $pid, int $userId): array
+    {
+        if (!$this->config->allowAdhoc()) {
+            return ['ok' => false, 'error' => xl('Unscheduled visits are turned off in the OpenVisit settings.')];
+        }
+        if ($action === 'patient.search') {
+            return ['ok' => true, 'patients' => $this->gateway->searchPatients($query)];
+        }
+        $categoryId = $this->gateway->telehealthCategoryId();
+        if ($categoryId === null) {
+            return ['ok' => false, 'error' => xl('The Telehealth Visit calendar category is missing.')];
+        }
+        try {
+            $eid = $this->visits->bookAdhoc($pid, $userId, $categoryId, $this->config->adhocDurationMinutes());
+        } catch (VisitException $e) {
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+        return ['ok' => true, 'eid' => $eid, 'url' => Bootstrap::MODULE_PATH . '/public/visit.php?eid=' . $eid];
+    }
+
+    /** Visits of the last 30 days, newest first. */
+    public function history(): string
+    {
+        $categoryId = $this->gateway->telehealthCategoryId();
+        $since = $this->gateway->now()->modify('-30 days')->format('Y-m-d');
+        $appointments = $categoryId === null ? [] : $this->gateway->appointmentsSince($since, $categoryId);
+        $visits = $this->sessions->findByAppointments(array_values(array_map(static fn(Appointment $a): int => $a->eid, $appointments)));
+        $joined = $this->participants->counts(array_values(array_map(static fn(Visit $v): int => $v->id, $visits)));
+
+        $rows = [];
+        foreach ($appointments as $appointment) {
+            $visit = $visits[$appointment->eid] ?? null;
+            if ($visit === null) {
+                continue;
+            }
+            $rows[] = [
+                'eid' => $appointment->eid,
+                'date' => $appointment->date,
+                'time' => substr($appointment->startTime, 0, 5),
+                'patient' => trim($appointment->patientFirstName . ' ' . $appointment->patientLastName),
+                'provider' => trim($appointment->providerFirstName . ' ' . $appointment->providerLastName),
+                'status' => $visit->status,
+                'startedAt' => $visit->startedAt,
+                'duration' => $visit->durationMinutes(),
+                'joined' => $joined[$visit->id] ?? 0,
+                'encounter' => $visit->encounter,
+            ];
+        }
+        return $this->twig->render('history.html.twig', ['rows' => $rows, 'since' => $since]);
+    }
+
     /** Today's telehealth appointments with their visit state. */
-    public function today(bool $isAdmin): string
+    public function today(bool $isAdmin, string $csrfToken = ''): string
     {
         $categoryId = $this->gateway->telehealthCategoryId();
         $today = $this->gateway->now()->format('Y-m-d');
@@ -165,6 +217,10 @@ final class VisitController
         }
 
         return $this->twig->render('today.html.twig', [
+            'assets' => Bootstrap::assetPath(),
+            'csrf' => $csrfToken,
+            'apiUrl' => Bootstrap::MODULE_PATH . '/public/api.php',
+            'allowAdhoc' => $this->config->allowAdhoc(),
             'date' => $today,
             'rows' => $rows,
             'configured' => $this->config->isConfigured(),
