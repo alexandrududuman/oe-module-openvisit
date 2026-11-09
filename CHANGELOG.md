@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-09
+
+Portal patients can join, providers can start a visit on the spot, and the history page shows
+what happened.
+
 ### Added
 - Telehealth appointments carry a camera icon in the staff calendar.
 - Unscheduled visits: on the Telehealth page a provider searches a patient and starts a visit
@@ -69,7 +74,8 @@ First installable release: a provider can run a video visit from the calendar.
 - Install guide in `docs/install.md`.
 - Playwright browser journeys in `tests/e2e/` covering admin, physician and non-clinical users.
 
-[Unreleased]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/alexandrududuman/oe-module-openvisit/releases/tag/v0.1.0
