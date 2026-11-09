@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-09
+
+An administrator can see what is missing before the first visit, and a clinic can stand up the
+whole stack with one command.
+
 ### Added
 - Setup check in the Module Manager config page: settings, Jitsi reachability, IFrame API,
   authentication configuration, JWT signing, public address, mailer and cleanup service, each
@@ -53,6 +58,7 @@ First installable release: a provider can run a video visit from the calendar.
 - Install guide in `docs/install.md`.
 - Playwright browser journeys in `tests/e2e/` covering admin, physician and non-clinical users.
 
-[Unreleased]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/alexandrududuman/oe-module-openvisit/releases/tag/v0.1.0
