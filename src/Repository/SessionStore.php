@@ -22,7 +22,8 @@ interface SessionStore
 
     public function findByRoom(string $roomName): ?Visit;
 
-    public function findByEncounter(int $encounter): ?Visit;
+    /** @return list<Visit> every call held in the encounter, in the order they started */
+    public function findByEncounter(int $encounter): array;
 
     public function create(int $eid, int $providerId, string $roomName): Visit;
 

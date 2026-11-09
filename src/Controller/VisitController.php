@@ -235,29 +235,52 @@ final class VisitController
         return $this->recordings->posterOf($recording);
     }
 
-    /** The video visit of an encounter, shown on the encounter page; empty when it had none. */
+    /** The video calls of an encounter, one row each, shown on the encounter page; empty when it had none. */
     public function encounterCard(int $encounter, int $userId): string
     {
-        $visit = $encounter > 0 ? $this->sessions->findByEncounter($encounter) : null;
-        $appointment = $visit === null ? null : $this->gateway->appointment($visit->eid);
-        if ($visit === null || $appointment === null) {
+        $calls = [];
+        foreach ($encounter > 0 ? $this->sessions->findByEncounter($encounter) : [] as $visit) {
+            $appointment = $this->gateway->appointment($visit->eid);
+            if ($appointment !== null) {
+                $calls[] = [$visit, $appointment, $this->mayAct($appointment, $userId)];
+            }
+        }
+        if ($calls === []) {
             return '';
         }
-        $mayWatch = $this->mayAct($appointment, $userId);
-        if ($mayWatch) {
+        if (in_array(true, array_column($calls, 2), true)) {
             $this->recordings->importReady();
         }
-        $recordings = $this->recordings->forSession($visit->id);
-        $joined = $this->participants->counts([$visit->id])[$visit->id] ?? 0;
+        $ids = array_map(static fn(array $call): int => $call[0]->id, $calls);
+        $joined = $this->participants->counts($ids);
+        $recordings = $this->recordings->forSessions($ids);
+        $rows = array_map(
+            fn(array $call): array => $this->callRow($call[0], $call[1], $call[2], $joined[$call[0]->id] ?? 0, $recordings[$call[0]->id] ?? []),
+            $calls,
+        );
+        $active = in_array(Visit::STATUS_ACTIVE, array_column($rows, 'status'), true);
         return $this->twig->render('encounter-visit.html.twig', [
             'assets' => Bootstrap::assetPath(),
+            'status' => $active ? Visit::STATUS_ACTIVE : $rows[count($rows) - 1]['status'],
+            'calls' => $rows,
+        ]);
+    }
+
+    /**
+     * @param list<Recording> $recordings
+     * @return array<string, mixed>
+     */
+    private function callRow(Visit $visit, Appointment $appointment, bool $mayWatch, int $joined, array $recordings): array
+    {
+        return [
+            'eid' => $visit->eid,
             'status' => $visit->status,
             'summary' => $this->visitSummary($visit, $joined),
             'rejoinUrl' => $visit->status === Visit::STATUS_ACTIVE && $mayWatch ? Bootstrap::publicPath() . '/visit.php?eid=' . $visit->eid : null,
             'patient' => trim($appointment->patientFirstName . ' ' . $appointment->patientLastName),
             'recordings' => $mayWatch ? $this->recordingCards($recordings, $appointment) : [],
             'hiddenRecordings' => !$mayWatch && $recordings !== [],
-        ]);
+        ];
     }
 
     private function visitSummary(Visit $visit, int $joined): string
