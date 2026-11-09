@@ -44,6 +44,7 @@ OpenVisit is a native OpenEMR module that talks to a Jitsi Meet server the clini
 
 - **Start from the calendar.** The provider opens the visit from the appointment. The room is
   created on demand and an encounter is opened automatically, with the real start and end time.
+  A second call with the same patient that day joins the same encounter, as OpenEMR is set.
 - **Patients join from a link.** Sent by email, no portal account, no app. A browser is enough,
   on desktop or phone.
 - **Waiting room.** The patient waits until the provider admits them.

@@ -22,7 +22,7 @@ reading PHP.
 | Feature | Notes |
 |---------|-------|
 | Start a visit from an appointment | Button in the appointment dialog and on the calendar event. Room is created on first join. |
-| Encounter opened automatically | When the provider joins. Real start and end time recorded on the session and written to the encounter. |
+| Encounter opened automatically | When the provider joins. Real start and end time recorded on the session and written to the encounter. Follows core's Auto-Create New Encounters global: one encounter per patient, provider and day, or one per appointment. |
 | Patient joins from an emailed link | No portal account needed. Single-use, time-limited join token. Works on phone and desktop browsers. |
 | Waiting room | Jitsi lobby. Provider is moderator (JWT claim `context.user.moderator`, read by the `token_affiliation` prosody module), patient waits until admitted. |
 | Locked rooms | Per-session JWT, random room name, short expiry. |
@@ -116,7 +116,7 @@ All integration is through events and core services. No core file is modified.
 | Button in appointment dialog | `AppointmentRenderEvent::RENDER_BELOW_PATIENT`, `RENDER_JAVASCRIPT` | Render a Start/Join button when the appointment category is marked as telehealth. |
 | Mark telehealth appointments | `openemr_postcalendar_categories` row inserted by `sql/install.sql`, as other modules do | One "Telehealth" category. Clinics can rename it. |
 | Session creation | `AppointmentSetEvent` fires only from the staff calendar dialog, not from REST or the portal | Do not rely on it. Create the session row lazily on the first join request, keyed by appointment id. |
-| Encounter creation | No "encounter created" event in core | Call `AppointmentService::createEncounterForAppointment` when the provider joins, if the appointment has no encounter yet. Core stamps the encounter at midnight, so the module sets `form_encounter.date` to the real start and `date_end` when the visit ends. |
+| Encounter creation | No "encounter created" event in core | When the provider joins and the session has no encounter yet: unless `auto_create_new_encounters` is 2 (one per appointment), reuse the patient's latest encounter of the day with the same provider, otherwise call `AppointmentService::createEncounterForAppointment`. Core stamps encounters at midnight, so the first call sets `form_encounter.date` to the real start, later calls keep it, and every end moves `date_end`. Core matches today's encounter on `date` = midnight, so a check-in after a call opens its own encounter. |
 | Calendar decoration | `CalendarUserGetEventsFilter` | Add a camera icon to telehealth events. |
 | Settings | `GlobalsInitializedEvent`, `GlobalsService::createSection` | Section "OpenVisit". Secret stored with `DATA_TYPE_ENCRYPTED`. |
 | Menu entry | `MenuEvent::MENU_UPDATE` | Top-level "Telehealth" right after Calendar, visible to anyone with `patients/appt`. The core Modules menu is hidden from clinicians, so nothing user-facing goes under it. |

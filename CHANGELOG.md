@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- A second video call with the same patient and provider on the same day joins the encounter
+  already open, instead of opening another one. OpenVisit follows OpenEMR's **Auto-Create New
+  Encounters** setting: with **Allow Encounter For Each Appointment** every appointment still
+  gets its own encounter. An encounter the front desk opened at check-in is reused too. The
+  encounter page lists each call with its times and recordings.
+
 ### Fixed
 - End visit now closes the Jitsi call for everyone. Before, patient and guests stayed connected
   to each other after the provider left; now they see that the clinic ended the visit, and every
