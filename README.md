@@ -4,8 +4,9 @@ Self-hosted video visits for [OpenEMR](https://www.open-emr.org) 8.5+, powered b
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
-> **Status: design phase.** There is no installable release yet. The design lives in
-> [docs/design.md](docs/design.md). Issues and comments on it are welcome.
+> **Status: early development.** The module installs and registers its settings, but video
+> visits are not there yet. Follow the [implementation plan](docs/implementation-plan.md).
+> The design lives in [docs/design.md](docs/design.md). Issues and comments on it are welcome.
 
 ## Why
 
@@ -56,7 +57,8 @@ composer require alexandrududuman/oe-module-openvisit
 ```
 
 Then in OpenEMR go to Administration > Modules > Manage Modules and click Register, Install,
-Enable. Full instructions will live in `docs/install.md`.
+Enable. See [docs/install.md](docs/install.md) for the full steps, including the command line
+path and the developer setup.
 
 ## Compatibility
 

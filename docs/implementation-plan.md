@@ -17,8 +17,9 @@ Installable module that does nothing visible except register itself.
 - PHPUnit and PHPStan configured, GitHub Actions running both on every PR
 - `docs/install.md` first draft
 
-Done when: `composer require` from a local path, Register, Install, Enable all succeed on the
-8.5 dev stack, the settings section appears, PHPStan passes at level max, CI is green.
+Done when: Register, Install, Enable, Disable all succeed through the Module Manager UI on the
+8.5 dev stack, the settings tab and menu entry render, the Playwright journey in `tests/e2e/`
+passes for admin, physician and a non-clinical user, PHPStan passes at level max, CI is green.
 
 ## Phase 1: provider room (v0.1.0)
 
