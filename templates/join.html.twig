@@ -16,6 +16,9 @@
     </div>
     <div class="openvisit-bar__status" id="openvisit-status" data-state="loading">{{ 'Connecting'|xlt }}&hellip;</div>
 </header>
+<div class="openvisit-record-message d-none" id="openvisit-recording-banner" role="status">
+    <span class="openvisit-dot" aria-hidden="true"></span>{{ 'This visit is being recorded.'|xlt }}
+</div>
 <main id="openvisit-meet"></main>
 <div class="openvisit-ended d-none" id="openvisit-left">
     <h2>{{ 'You left the visit'|xlt }}</h2>

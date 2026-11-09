@@ -17,11 +17,13 @@ use OpenVisit\OpenEMR\Modules\OpenVisit\Config\ModuleConfig;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Exception\VisitException;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\ClinicalGateway;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Model\Appointment;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Model\Recording;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Model\Visit;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SessionStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\InviteService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\JitsiJwt;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\ParticipantService;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\RecordingService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\TokenService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\VisitService;
 use Twig\Environment;
@@ -38,6 +40,7 @@ final class VisitController
         private readonly InviteService $invites,
         private readonly TokenService $tokens,
         private readonly ParticipantService $participants,
+        private readonly RecordingService $recordings,
         private readonly Environment $twig,
     ) {}
 
@@ -82,6 +85,7 @@ final class VisitController
             'endUrl' => Bootstrap::MODULE_PATH . '/public/api.php',
             'moderator' => true,
             'emailEnabled' => $this->invites->emailEnabled(),
+            'recording' => ['enabled' => $this->recordings->enabled(), 'minPeople' => RecordingService::MIN_PEOPLE],
         ];
 
         return $this->twig->render('visit.html.twig', [
@@ -89,6 +93,7 @@ final class VisitController
             'patientName' => trim($started->appointment->patientFirstName . ' ' . $started->appointment->patientLastName),
             'startsAt' => $started->appointment->startsAt()->format('Y-m-d H:i'),
             'encounter' => $started->visit->encounter,
+            'recordingEnabled' => $this->recordings->enabled(),
             'clientConfig' => json_encode($client, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT),
         ]);
     }
@@ -156,6 +161,74 @@ final class VisitController
         return ['ok' => false, 'error' => 'unknown action'];
     }
 
+    /** @return array<string, mixed> */
+    public function recording(string $action, int $sessionId, int $recordingId, int $userId): array
+    {
+        $owned = $this->ownedVisit($sessionId, $userId);
+        if ($owned === null) {
+            return ['ok' => false, 'error' => xl('This visit does not exist.')];
+        }
+        try {
+            switch ($action) {
+                case 'recording.start':
+                    return ['ok' => true, 'recording' => $this->recordings->start($owned[0], $userId)->toArray()];
+                case 'recording.started':
+                    $this->recordings->started($recordingId, $sessionId);
+                    break;
+                case 'recording.stopped':
+                    $this->recordings->stopped($recordingId, $sessionId);
+                    break;
+                case 'recording.failed':
+                    $this->recordings->failed($recordingId, $sessionId);
+                    break;
+                case 'recording.list':
+                    $this->recordings->importReady();
+                    break;
+                default:
+                    return ['ok' => false, 'error' => 'unknown action'];
+            }
+        } catch (VisitException $e) {
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+        return ['ok' => true, 'recordings' => array_map(static fn(Recording $r): array => $r->toArray(), $this->recordings->forSession($sessionId))];
+    }
+
+    /** The player page for one recording; the same answer as "not found" for anyone else's. */
+    public function recordingPage(int $recordingId, int $userId): string
+    {
+        $recording = $this->recordings->find($recordingId);
+        $owned = $recording === null ? null : $this->ownedVisit($recording->sessionId, $userId);
+        if ($recording === null || $owned === null || $this->recordings->fileOf($recording) === null) {
+            return $this->error(xl('This recording does not exist or is not ready yet.'));
+        }
+        [$visit, $appointment] = $owned;
+        $this->gateway->audit('openvisit-record-view', sprintf('recording %d of session %d viewed by user %d', $recording->id, $visit->id, $userId), $appointment->pid);
+        return $this->twig->render('recording.html.twig', [
+            'patient' => trim($appointment->patientFirstName . ' ' . $appointment->patientLastName),
+            'provider' => trim($appointment->providerFirstName . ' ' . $appointment->providerLastName),
+            'date' => $appointment->date,
+            'startedAt' => $recording->startedAt ?? $recording->createdAt,
+            'duration' => self::clock($recording->durationSeconds),
+            'encounter' => $visit->encounter,
+            'streamUrl' => 'recording.php?' . http_build_query(['id' => $recording->id, 'stream' => 1]),
+        ]);
+    }
+
+    /** Absolute path of a ready recording the user may watch, else null. */
+    public function recordingFile(int $recordingId, int $userId): ?string
+    {
+        $recording = $this->recordings->find($recordingId);
+        if ($recording === null || $this->ownedVisit($recording->sessionId, $userId) === null) {
+            return null;
+        }
+        return $this->recordings->fileOf($recording);
+    }
+
+    private static function clock(?int $seconds): string
+    {
+        return $seconds === null ? '' : sprintf('%d:%02d', intdiv($seconds, 60), $seconds % 60);
+    }
+
     /**
      * The visit and its appointment when the user may act on it, else null (same answer as "not found").
      *
@@ -207,7 +280,10 @@ final class VisitController
         $since = $this->gateway->now()->modify('-30 days')->format('Y-m-d');
         $appointments = $categoryId === null ? [] : $this->gateway->appointmentsSince($since, $categoryId);
         $visits = $this->sessions->findByAppointments(array_values(array_map(static fn(Appointment $a): int => $a->eid, $appointments)));
-        $joined = $this->participants->counts(array_values(array_map(static fn(Visit $v): int => $v->id, $visits)));
+        $sessionIds = array_values(array_map(static fn(Visit $v): int => $v->id, $visits));
+        $joined = $this->participants->counts($sessionIds);
+        $this->recordings->importReady();
+        $recordings = $this->recordings->forSessions($sessionIds);
 
         $rows = [];
         foreach ($appointments as $appointment) {
@@ -226,6 +302,12 @@ final class VisitController
                 'duration' => $visit->durationMinutes(),
                 'joined' => $joined[$visit->id] ?? 0,
                 'encounter' => $visit->encounter,
+                'recordings' => array_map(static fn(Recording $r): array => [
+                    'id' => $r->id,
+                    'status' => $r->status,
+                    'duration' => self::clock($r->durationSeconds),
+                    'url' => 'recording.php?' . http_build_query(['id' => $r->id]),
+                ], $recordings[$visit->id] ?? []),
             ];
         }
         return $this->twig->render('history.html.twig', ['rows' => $rows, 'since' => $since]);

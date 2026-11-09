@@ -15,13 +15,22 @@
         <table class="table table-sm table-striped" id="openvisit-history">
             <thead><tr>
                 <th>{{ 'Date'|xlt }}</th><th>{{ 'Time'|xlt }}</th><th>{{ 'Patient'|xlt }}</th><th>{{ 'Provider'|xlt }}</th>
-                <th>{{ 'Visit'|xlt }}</th><th>{{ 'Started'|xlt }}</th><th>{{ 'Minutes'|xlt }}</th><th>{{ 'Joined'|xlt }}</th><th>{{ 'Encounter'|xlt }}</th>
+                <th>{{ 'Visit'|xlt }}</th><th>{{ 'Started'|xlt }}</th><th>{{ 'Minutes'|xlt }}</th><th>{{ 'Joined'|xlt }}</th><th>{{ 'Encounter'|xlt }}</th><th>{{ 'Recordings'|xlt }}</th>
             </tr></thead>
             <tbody>
             {% for row in rows %}
                 <tr data-eid="{{ row.eid|attr }}">
                     <td>{{ row.date|text }}</td><td>{{ row.time|text }}</td><td>{{ row.patient|text }}</td><td>{{ row.provider|text }}</td>
                     <td>{{ row.status|text }}</td><td>{{ row.startedAt|text }}</td><td>{{ row.duration|text }}</td><td>{{ row.joined|text }}</td><td>{{ row.encounter|text }}</td>
+                    <td class="openvisit-recordings">
+                        {% for rec in row.recordings %}
+                            {% if rec.status == 'ready' %}
+                                <a href="{{ rec.url|attr }}" data-recording="{{ rec.id|attr }}" data-status="ready"><i class="fa fa-play-circle" aria-hidden="true"></i> {{ 'Watch'|xlt }}{% if rec.duration %} {{ rec.duration|text }}{% endif %}</a><br>
+                            {% else %}
+                                <span class="text-muted" data-recording="{{ rec.id|attr }}" data-status="{{ rec.status|attr }}">{{ rec.status|text }}</span><br>
+                            {% endif %}
+                        {% endfor %}
+                    </td>
                 </tr>
             {% endfor %}
             </tbody>

@@ -8,9 +8,10 @@
   const meet = document.getElementById('openvisit-meet');
   const left = document.getElementById('openvisit-left');
   const over = document.getElementById('openvisit-over');
+  const recordingBanner = document.getElementById('openvisit-recording-banner');
   let participantId = null;
 
-  window.openvisit = { state: 'loading' };
+  window.openvisit = { state: 'loading', recording: 'off' };
 
   function setState(state, text) {
     window.openvisit.state = state;
@@ -61,7 +62,14 @@
       setState('joined', 'You are in the visit');
       report('joined');
     });
+    // Patients and guests always see when the visit is being recorded.
+    api.addListener('recordingStatusChanged', function (event) {
+      if (event.mode && event.mode !== 'file') { return; }
+      window.openvisit.recording = event.on ? 'on' : 'off';
+      recordingBanner.classList.toggle('d-none', !event.on);
+    });
     api.addListener('videoConferenceLeft', function () {
+      recordingBanner.classList.add('d-none');
       meet.classList.add('d-none');
       setState('left', 'You left');
       report('left').then(function (result) {

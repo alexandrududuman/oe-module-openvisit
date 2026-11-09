@@ -26,11 +26,14 @@ use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\MenuListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\PortalListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlAttemptStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlParticipantStore;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlRecordingStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlSessionStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlTokenStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\CleanupService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\InviteService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\ParticipantService;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\RecordingFiles;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Service\RecordingService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\RoomNameGenerator;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\TokenService;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Service\VisitService;
@@ -83,6 +86,18 @@ final class Bootstrap
         return new ParticipantService(new SqlParticipantStore(), $this->gateway());
     }
 
+    public function recordings(): RecordingService
+    {
+        return new RecordingService(new SqlRecordingStore(), new SqlParticipantStore(), new SqlSessionStore(), $this->gateway(), $this->config(), $this->recordingFiles());
+    }
+
+    /** Jibri's inbox from the settings; storage under the site documents folder, which core never serves directly. */
+    public function recordingFiles(): RecordingFiles
+    {
+        $siteDir = OEGlobalsBag::getInstance()->getString('OE_SITE_DIR');
+        return new RecordingFiles($this->config()->recordingsInbox(), $siteDir . '/documents/openvisit/recordings');
+    }
+
     public function cleanup(): CleanupService
     {
         return new CleanupService(new SqlSessionStore(), new SqlTokenStore(), new SqlAttemptStore(), $this->tokens(), $this->gateway());
@@ -98,6 +113,7 @@ final class Bootstrap
             new InviteService($this->tokens(), $this->gateway(), $this->config()),
             $this->tokens(),
             $this->participants(),
+            $this->recordings(),
             $this->twig(),
         );
     }

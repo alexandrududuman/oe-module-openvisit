@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ 'Visit recording'|xlt }} - {{ patient|text }}</title>
+    {{ setupHeader() }}
+</head>
+<body>
+<div class="container-fluid mt-3">
+    <h3>{{ 'Visit recording'|xlt }} <small class="text-muted">{{ patient|text }} &middot; {{ date|text }}</small></h3>
+    <p><a href="sessions.php">{{ 'Back to visit history'|xlt }}</a></p>
+    <video id="openvisit-player" class="w-100 bg-dark" style="max-width: 960px" controls preload="metadata" playsinline src="{{ streamUrl|attr }}"></video>
+    <p class="text-muted mt-2">
+        {{ 'Recorded'|xlt }} {{ startedAt|text }} &middot; {{ provider|text }}
+        {% if duration %} &middot; {{ duration|text }}{% endif %}
+        {% if encounter %} &middot; {{ 'Encounter'|xlt }} #{{ encounter|text }}{% endif %}
+    </p>
+</div>
+</body>
+</html>

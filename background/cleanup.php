@@ -27,10 +27,12 @@ function openvisit_background_cleanup(): void
     }
     $bootstrap = new Bootstrap(OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher());
     $result = $bootstrap->cleanup()->run();
+    $recordings = $bootstrap->recordings()->importReady();
     error_log(sprintf(
-        'OpenVisit cleanup: %d visits closed, %d tokens purged, %d attempts purged',
+        'OpenVisit cleanup: %d visits closed, %d tokens purged, %d attempts purged, %d recordings filed',
         $result['closedVisits'],
         $result['purgedTokens'],
         $result['purgedAttempts'],
+        $recordings,
     ));
 }
