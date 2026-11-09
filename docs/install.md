@@ -3,6 +3,12 @@
 OpenVisit is an OpenEMR custom module. It installs like every other Composer module and is then
 registered, installed and enabled from the Module Manager.
 
+## Patient portal
+
+Patients with a portal account see a **Join video visit** button on their telehealth
+appointments. No extra setup: the portal session identifies the patient and the module issues
+the same kind of link it would email.
+
 ## Whole clinic in one command
 
 `docker/` holds a reference stack: OpenEMR with the module, MariaDB, Jitsi Meet with JWT auth

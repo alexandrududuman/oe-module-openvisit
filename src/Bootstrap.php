@@ -20,6 +20,7 @@ use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\OpenEmrGateway;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\AppointmentListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\GlobalsListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\MenuListener;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Listener\PortalListener;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlAttemptStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlParticipantStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SqlSessionStore;
@@ -48,6 +49,7 @@ final class Bootstrap
         (new GlobalsListener())->subscribe($this->dispatcher);
         (new MenuListener())->subscribe($this->dispatcher);
         (new AppointmentListener($this->gateway(...)))->subscribe($this->dispatcher);
+        (new PortalListener($this->gateway(...)))->subscribe($this->dispatcher);
     }
 
     public function config(): ModuleConfig

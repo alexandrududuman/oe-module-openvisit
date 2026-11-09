@@ -96,6 +96,16 @@ final class VisitServiceTest extends TestCase
         self::assertNull($again->visit->endedAt);
     }
 
+    public function testEnsureSessionCreatesOnceWithoutStarting(): void
+    {
+        $first = $this->service->ensureSession($this->gateway->appointments[42]);
+        $second = $this->service->ensureSession($this->gateway->appointments[42]);
+
+        self::assertSame($first->id, $second->id);
+        self::assertSame(Visit::STATUS_SCHEDULED, $second->status);
+        self::assertSame([], $this->gateway->createdEncountersFor);
+    }
+
     public function testUnknownAppointmentIsRejected(): void
     {
         $this->expectException(VisitException::class);
