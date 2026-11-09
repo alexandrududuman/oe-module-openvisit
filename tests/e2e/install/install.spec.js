@@ -136,7 +136,18 @@ test.describe('OpenVisit on a fresh OpenEMR', () => {
     // The button's handler is wired once the popup has loaded; older cores load it slower.
     await confirm.waitForLoadState('load');
     await confirm.getByRole('button', { name: 'Confirm Create New Patient' }).click();
-    await expect.poll(() => page.frames().some((f) => /demographics\.php/.test(f.url())), { timeout: 30_000 }).toBe(true);
+    const saved = () => page.frames().some((f) => /demographics\.php/.test(f.url()));
+    // OpenEMR 8.2 to 8.4 run this dialog's callback from an unload handler, which current Chrome
+    // blocks; there the form's own confirm callback is called directly.
+    const confirmed = await expect.poll(saved, { timeout: 10_000 }).toBe(true).then(() => true, () => false);
+    if (!confirmed) {
+      await form.evaluate(() => window.srcConfirmSave());
+    }
+    await expect.poll(saved, { timeout: 30_000 }).toBe(true);
+    const leftOpen = page.locator('.modal.show .closeDlgIframe, .modal.show button.close').first();
+    if (!confirmed && await leftOpen.isVisible()) {
+      await leftOpen.click();
+    }
 
     // 6. A video visit right away, with the patient joining from a phone.
     expect(await clickTopMenu(page, 'Telehealth')).toBe(true);
@@ -157,7 +168,7 @@ test.describe('OpenVisit on a fresh OpenEMR', () => {
     await expect(room.locator('#openvisit-patient-link')).toHaveValue(new RegExp(`^${BASE_URL}/.*join\\.php\\?t=`), { timeout: 30_000 });
     const patientUrl = await room.locator('#openvisit-patient-link').inputValue();
 
-    const phone = await browser.newContext({ ...devices['Pixel 7'], permissions: ['camera', 'microphone'] });
+    const phone = await browser.newContext({ ...devices['Pixel 7'], ignoreHTTPSErrors: true, permissions: ['camera', 'microphone'] });
     const patient = await phone.newPage();
     await patient.goto(patientUrl);
     const patientJitsi = patient.frameLocator('#openvisit-meet iframe').first();
