@@ -36,6 +36,11 @@ php bin/console openemr:zfc-module --modaction=enable --modname=oe-module-openvi
 
 ## 3. Configure
 
+Also enable the hourly cleanup: Administration > System > Services shows **OpenVisit: close
+abandoned visits and purge old links**; it is switched on automatically when the module is
+enabled through the Module Manager. When the module is enabled from the command line, set it
+active there.
+
 Administration > Globals > **OpenVisit** tab. Set the Jitsi domain, the JWT app id and the JWT
 app secret to the values configured on the Jitsi server. The other settings have sensible
 defaults.

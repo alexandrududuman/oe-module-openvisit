@@ -54,8 +54,9 @@ Patients join from a link without an account.
 - Participant audit from IFrame API join and leave events, confirmed server-side
 - Unit tests for token lifecycle and join window edge cases
 
-Done when: a patient on a phone opens the link, waits in the lobby, is admitted, and the
-participant row shows the join and leave times.
+Done when: the browser journey, with a phone-emulated patient, opens the link without a login,
+sees only the first name, waits in the lobby, is admitted by the provider, a revoked guest link
+and a wrong link are refused with a plain message, and the Telehealth page shows who joined.
 
 ## Phase 3: setup experience (v0.3.0)
 
