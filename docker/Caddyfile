@@ -1,0 +1,12 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$EMR_DOMAIN} {
+	reverse_proxy openemr:80
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+}
+
+{$MEET_DOMAIN} {
+	reverse_proxy jitsi-web:80
+}

@@ -1,0 +1,145 @@
+# OpenVisit reference stack for a clinic: OpenEMR with the module, MariaDB, Jitsi Meet with JWT
+# auth, coturn for participants behind strict NATs, and Caddy as the TLS reverse proxy.
+#
+# 1. Copy .env.example to .env and fill in the domains, passwords and secrets.
+# 2. Point DNS for EMR_DOMAIN and MEET_DOMAIN (and TURN_DOMAIN) at this host.
+# 3. docker compose up -d
+# 4. Log in to OpenEMR, enable the module in Manage Modules, enter JWT_APP_ID / JWT_APP_SECRET
+#    in Administration > Globals > OpenVisit, then open the module's setup check.
+name: openvisit
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      EMR_DOMAIN: ${EMR_DOMAIN}
+      MEET_DOMAIN: ${MEET_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    depends_on: [openemr, jitsi-web]
+
+  mysql:
+    image: mariadb:11.4
+    restart: unless-stopped
+    command: ['mariadbd', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_general_ci']
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  openemr:
+    image: openemr/openemr:${OPENEMR_VERSION:-8.5.0}
+    restart: unless-stopped
+    volumes:
+      - openemr-sites:/var/www/localhost/htdocs/openemr/sites
+      - openemr-logs:/var/log
+      - ../:/var/www/localhost/htdocs/openemr/interface/modules/custom_modules/oe-module-openvisit:ro
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_ROOT_PASS: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: openemr
+      MYSQL_PASS: ${MYSQL_OPENEMR_PASSWORD}
+      OE_USER: ${OE_ADMIN_USER:-admin}
+      OE_PASS: ${OE_ADMIN_PASSWORD}
+      OPENEMR_SETTING_site_addr_oath: https://${EMR_DOMAIN}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  jitsi-web:
+    image: ghcr.io/jitsi/web:${JITSI_VERSION:-stable-11248-3}
+    restart: unless-stopped
+    environment: &jitsi-env
+      TZ: ${TZ:-UTC}
+      PUBLIC_URL: https://${MEET_DOMAIN}
+      DISABLE_HTTPS: 1
+      ENABLE_HTTP_REDIRECT: 0
+      ENABLE_AUTH: 1
+      ENABLE_GUESTS: 0
+      AUTH_TYPE: jwt
+      JWT_APP_ID: ${JWT_APP_ID}
+      JWT_APP_SECRET: ${JWT_APP_SECRET}
+      ENABLE_LOBBY: 1
+      ENABLE_RECORDING: 0
+      ENABLE_XMPP_WEBSOCKET: 1
+      XMPP_MUC_MODULES: token_affiliation
+      XMPP_DOMAIN: meet.jitsi
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_GUEST_DOMAIN: guest.meet.jitsi
+      XMPP_MUC_DOMAIN: muc.meet.jitsi
+      XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
+      XMPP_RECORDER_DOMAIN: recorder.meet.jitsi
+      XMPP_SERVER: xmpp.meet.jitsi
+      XMPP_BOSH_URL_BASE: http://xmpp.meet.jitsi:5280
+      JICOFO_AUTH_PASSWORD: ${JICOFO_AUTH_PASSWORD}
+      JVB_AUTH_PASSWORD: ${JVB_AUTH_PASSWORD}
+      JVB_BREWERY_MUC: jvbbrewery
+      JVB_PORT: 10000
+      JVB_ADVERTISE_IPS: ${PUBLIC_IP}
+      TURN_HOST: ${TURN_DOMAIN}
+      TURN_PORT: 3478
+      TURNS_PORT: 5349
+      TURN_CREDENTIALS: ${TURN_SECRET}
+    depends_on: [jitsi-prosody]
+    networks:
+      default:
+      meet.jitsi:
+
+  jitsi-prosody:
+    image: ghcr.io/jitsi/prosody:${JITSI_VERSION:-stable-11248-3}
+    restart: unless-stopped
+    expose: ['5222', '5280']
+    environment: *jitsi-env
+    networks:
+      meet.jitsi:
+        aliases: [xmpp.meet.jitsi]
+
+  jitsi-jicofo:
+    image: ghcr.io/jitsi/jicofo:${JITSI_VERSION:-stable-11248-3}
+    restart: unless-stopped
+    environment: *jitsi-env
+    depends_on: [jitsi-prosody]
+    networks:
+      meet.jitsi:
+
+  jitsi-jvb:
+    image: ghcr.io/jitsi/jvb:${JITSI_VERSION:-stable-11248-3}
+    restart: unless-stopped
+    ports:
+      - '10000:10000/udp'
+    environment: *jitsi-env
+    depends_on: [jitsi-prosody]
+    networks:
+      meet.jitsi:
+
+  coturn:
+    image: coturn/coturn:4
+    restart: unless-stopped
+    network_mode: host
+    command: >
+      --listening-port=3478 --tls-listening-port=5349
+      --realm=${TURN_DOMAIN} --use-auth-secret --static-auth-secret=${TURN_SECRET}
+      --external-ip=${PUBLIC_IP} --min-port=49160 --max-port=49200
+      --no-cli --no-multicast-peers --fingerprint --log-file=stdout
+
+volumes:
+  caddy-data:
+  caddy-config:
+  mysql-data:
+  openemr-sites:
+  openemr-logs:
+
+networks:
+  meet.jitsi:
