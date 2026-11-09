@@ -98,6 +98,19 @@ form appears on the encounter.
 
 Done when: a clinic runs it in production for real visits.
 
+## Phase 5b: live calls and installing from scratch
+
+- Live call journey: provider, phone patient and guest in one visit for a configurable time,
+  media checked on every side, a dropped patient re-admitted
+- End visit closes the call for everyone; only the provider is a Jitsi moderator
+- Install journey on a pristine OpenEMR: copy, Composer, upgrade from 0.5.0; Module Manager,
+  settings, setup check, first patient, first visit; schema and SQL version checked
+- Supported OpenEMR range from what that journey passes on; older cores leave the module dormant
+
+Done when: the install journey passes on the oldest supported release, 8.5.0 and the next
+OpenEMR release, an unsupported core keeps working with the module present, and the live call
+journey passes against the public reference stack.
+
 ## After 1.0
 
 Recording with consent (Jibri), SMS invitations through the Fax/SMS module, REST endpoints,

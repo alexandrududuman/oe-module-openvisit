@@ -16,26 +16,46 @@ and lobby, coturn and Caddy with automatic TLS. See [docker/README.md](../docker
 
 ## Requirements
 
-- OpenEMR 8.5.0 or newer, PHP 8.3 or newer
-- Shell access to the OpenEMR server, with Composer
-- A Jitsi Meet server with JWT authentication (see the reference stack in `docker/` once it ships)
+- OpenEMR 8.2.0 or newer, PHP 8.3 or newer. On an older OpenEMR the module installs but
+  stays inactive, and its setup check says which version it needs.
+- Shell access to the OpenEMR server, to run Composer or copy the module folder
+- A Jitsi Meet server with JWT authentication (the reference stack in `docker/` has one)
 
-## 1. Install the package
+## 1. Put the module in place
+
+Either with Composer, from the OpenEMR directory:
 
 ```sh
 cd /path/to/openemr
 composer require alexandrududuman/oe-module-openvisit
 ```
 
-Composer places the module in `interface/modules/custom_modules/oe-module-openvisit`.
+Or by hand: unpack the release archive so that its files sit in
+`interface/modules/custom_modules/oe-module-openvisit`. The folder name must be exactly that.
 
-## 2. Register, install, enable
+Either way the files must belong to the web server user. The official `openemr/openemr` docker
+image keeps the code read-only for that user, so run Composer or the copy as root inside the
+container, then hand the folder over:
+
+```sh
+chown -R apache:apache interface/modules/custom_modules/oe-module-openvisit
+```
+
+## 2. Install and enable
 
 In OpenEMR: Administration > Modules > Manage Modules.
 
-1. The list shows "OpenVisit Telehealth" as unregistered. Click **Register**.
+1. "OpenVisit Telehealth" is listed once its files are in place. On releases that list it as
+   unregistered, click **Register** first.
 2. Click **Install**. This creates the module's tables.
 3. Click **Enable**.
+
+## Upgrading
+
+Replace the files (`composer update alexandrududuman/oe-module-openvisit`, or unpack the new
+release over the old folder), then open Manage Modules. When the new release changes the
+database, the module's row shows **Upgrade SQL** or **Install SQL**; click it once. Releases
+before 0.6.0 did not record their SQL version, so they show **Install SQL**; it is safe to run.
 
 Equivalent from the command line, inside the OpenEMR directory:
 
@@ -93,6 +113,10 @@ npm run e2e            # headless
 npm run e2e:headed     # watch it click
 ```
 
+`live-call.spec.js` keeps a provider, a phone patient and a guest in one visit and checks every
+few seconds that audio and video still arrive on every side; `CALL_SECONDS` sets how long
+(default 60).
+
 Set `OPENEMR_URL` if the stack is not on `https://localhost:9300`. The journeys use the demo
 users (`admin/pass`, `physician/physician`, `accountant/accountant`) and leave the settings as
 they found them. The provider-room journey needs a Jitsi server with JWT auth and the
@@ -113,6 +137,25 @@ npm run stack:down      # remove containers and volumes
 Override ports with `OPENEMR_HTTP_PORT`, `OPENEMR_HTTPS_PORT`, `JITSI_HTTPS_PORT`, `JVB_PORT`
 when the development stack is already using the defaults.
 
+### Installing from scratch
+
+`tests/e2e/install/run.sh` starts a pristine OpenEMR without demo data or the module, puts the
+module in place as a clinic would, and runs a journey in which the administrator installs and
+enables it in Manage Modules, fills in the settings, follows the setup check, enters a first
+patient and runs a visit with that patient on a phone. It then checks that core recorded the
+module's SQL version and that every table exists.
+
+```sh
+tests/e2e/install/run.sh copy        # release files copied into custom_modules
+tests/e2e/install/run.sh composer    # composer require
+tests/e2e/install/run.sh upgrade     # v0.5.0 in use first, then replaced
+OPENEMR_TAG=8.6.0 tests/e2e/install/run.sh copy
+OPENEMR_TAG=8.0.0 EXPECT_UNSUPPORTED=1 tests/e2e/install/run.sh copy   # stays inactive, core keeps working
+```
+
+It needs the same `JITSI_DOMAIN` and `JITSI_JWT_SECRET` as the other journeys, and port 8350
+(`INSTALL_HTTP_PORT`).
+
 ### Jitsi server requirements
 
 Any Jitsi Meet with JWT authentication works. With `docker-jitsi-meet` set at least:
@@ -127,4 +170,15 @@ XMPP_MUC_MODULES=token_affiliation
 ```
 
 `token_affiliation` makes the provider a moderator from the JWT claim and keeps patients and
-guests in the lobby until admitted.
+guests in the lobby until admitted. Two more settings make sure nobody else gets that role:
+
+```
+JICOFO_ENABLE_AUTH=0
+ENABLE_AUTO_OWNER=0
+```
+
+With jicofo's own JWT authentication on, jicofo makes every participant who holds a valid token
+a moderator, patients and guests included; with auto-owner on, whoever joins first becomes one.
+Prosody still refuses anyone without a valid token. End visit closes the call for everyone
+through Jitsi's end-conference component, which docker-jitsi-meet enables by default
+(`ENABLE_END_CONFERENCE`).

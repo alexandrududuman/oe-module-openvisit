@@ -6,6 +6,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+- End visit now closes the Jitsi call for everyone. Before, patient and guests stayed connected
+  to each other after the provider left; now they see that the clinic ended the visit, and every
+  open participant row is closed.
+- Patients and guests no longer become Jitsi moderators. The reference stack and the documented
+  Jitsi settings turn off jicofo's own JWT authentication and auto-owner, so only the provider's
+  token carries the role.
+- `composer require` works on any OpenEMR. The package declared a conflict with OpenEMR below
+  8.5.0, which Composer applied to installations without version metadata, such as the official
+  docker image, and refused the install.
+- Core now records the module's SQL version, so the Module Manager offers schema upgrades. The
+  schema moved from `sql/table.sql` to `sql/install.sql`; existing installs get an Install SQL
+  button that is safe to run.
+
+### Changed
+- Supported OpenEMR: 8.2.0 or newer. On an older release the module stays inactive
+  instead of breaking core pages, and its setup check says which version it needs.
+
+### Added
+- Install journey on a pristine OpenEMR: copy, Composer and upgrade from 0.5.0, through the
+  Module Manager, settings, setup check, a first patient and a first visit. Runs in CI on 8.5.0,
+  the next OpenEMR release, the oldest supported release, and 8.0.0 as an unsupported core.
+- Live call journey: provider, phone patient and guest stay in one visit while audio and video
+  are checked on every side; one patient reload and re-admission included.
+
 ## [0.5.0] - 2026-11-09
 
 Hardening after an independent security review, and the reference stack proven on a public

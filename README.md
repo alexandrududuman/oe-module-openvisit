@@ -4,8 +4,8 @@ Self-hosted video visits for [OpenEMR](https://www.open-emr.org) 8.5+, powered b
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
-> **Status: early development.** A provider can already run a video visit from the calendar
-> against a self-hosted Jitsi; patient links come next. Follow the
+> **Status: before 1.0.** Video visits from the calendar or on the spot, patient and guest links
+> with a waiting room, and the portal Join button work against a self-hosted Jitsi. Follow the
 > [implementation plan](docs/implementation-plan.md).
 > The design lives in [docs/design.md](docs/design.md). Issues and comments on it are welcome.
 
@@ -43,32 +43,34 @@ Fax/SMS module, REST endpoints.
 
 | Component   | Version                                      |
 |-------------|----------------------------------------------|
-| OpenEMR     | 8.5.0 or newer                               |
+| OpenEMR     | 8.2.0 or newer                               |
 | PHP         | 8.3 or newer                                 |
 | Jitsi Meet  | self-hosted, JWT authentication enabled      |
 | TURN server | coturn, included in the reference stack      |
 
 ## Install
 
-Not yet. Once the first release is tagged:
-
 ```sh
 cd /path/to/openemr
 composer require alexandrududuman/oe-module-openvisit
 ```
 
-Then in OpenEMR go to Administration > Modules > Manage Modules and click Register, Install,
-Enable. See [docs/install.md](docs/install.md) for the full steps, including the command line
-path and the developer setup.
+Or unpack the release archive into `interface/modules/custom_modules/oe-module-openvisit`.
+Then in OpenEMR go to Administration > Modules > Manage Modules and click Install, then Enable.
+See [docs/install.md](docs/install.md) for the full steps, the official docker image, upgrades
+and the developer setup.
 
 ## Compatibility
 
-| OpenVisit  | OpenEMR | Jitsi Meet (docker-jitsi-meet) |
-|------------|---------|--------------------------------|
-| 0.5.0      | 8.5.0   | stable-11248-3                 |
+| OpenVisit  | OpenEMR                  | Jitsi Meet (docker-jitsi-meet) |
+|------------|--------------------------|--------------------------------|
+| unreleased | 8.2.0 to 8.6.0 (next)    | stable-11248-3                 |
+| 0.5.0      | 8.5.0                    | stable-11248-3                 |
 
-Every pull request runs unit tests, PHPStan at level max against OpenEMR 8.5, and browser
-journeys that drive a real OpenEMR and Jitsi stack in containers.
+Every pull request runs unit tests, PHPStan at level max against OpenEMR 8.5, browser journeys
+that drive a real OpenEMR and Jitsi stack in containers, and an install journey that adds the
+module to a pristine OpenEMR, sets it up through the Module Manager and runs a first visit. On
+an OpenEMR older than 8.2.0 the module stays inactive and core keeps working.
 
 ## Project
 
@@ -82,4 +84,5 @@ the design.
 
 ## License
 
-GPL-3.0-or-later, the same license as OpenEMR. See [LICENSE](LICENSE).
+Copyright (c) 2026 Alexandru Duduman. Licensed under GPL-3.0-or-later, the same license as
+OpenEMR. See [LICENSE](LICENSE).
