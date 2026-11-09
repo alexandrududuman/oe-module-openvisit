@@ -81,7 +81,7 @@ oe-module-openvisit/
   openemr.bootstrap.php       registers namespace, subscribes listeners
   ModuleManagerListener.php   install/enable/disable hooks (global namespace, core requirement)
   moduleConfig.php            settings page shown in the Module Manager iframe
-  sql/table.sql               idempotent, #IfNotTable guarded
+  sql/install.sql             idempotent, #IfNotTable guarded
   sql/<from>-to-<to>_upgrade.sql
   src/
     Bootstrap.php             wiring only
@@ -110,7 +110,7 @@ All integration is through events and core services. No core file is modified.
 | Need | Core seam | Decision |
 |------|-----------|----------|
 | Button in appointment dialog | `AppointmentRenderEvent::RENDER_BELOW_PATIENT`, `RENDER_JAVASCRIPT` | Render a Start/Join button when the appointment category is marked as telehealth. |
-| Mark telehealth appointments | `openemr_postcalendar_categories` row inserted by `table.sql`, as other modules do | One "Telehealth" category. Clinics can rename it. |
+| Mark telehealth appointments | `openemr_postcalendar_categories` row inserted by `sql/install.sql`, as other modules do | One "Telehealth" category. Clinics can rename it. |
 | Session creation | `AppointmentSetEvent` fires only from the staff calendar dialog, not from REST or the portal | Do not rely on it. Create the session row lazily on the first join request, keyed by appointment id. |
 | Encounter creation | No "encounter created" event in core | Call `AppointmentService::createEncounterForAppointment` when the provider joins, if the appointment has no encounter yet. Core stamps the encounter at midnight, so the module sets `form_encounter.date` to the real start and `date_end` when the visit ends. |
 | Calendar decoration | `CalendarUserGetEventsFilter` | Add a camera icon to telehealth events. |
@@ -127,7 +127,7 @@ All integration is through events and core services. No core file is modified.
 
 Module lifecycle hooks (`ModuleManagerListener`) run only from the web Module Manager, not from
 the `openemr:zfc-module` CLI. Everything the hooks do must therefore also be safe to re-run and
-`table.sql` must be idempotent.
+`sql/install.sql` must be idempotent.
 
 ## Jitsi integration
 
@@ -191,7 +191,7 @@ openvisit_participant
   id, session_id, role, display_name, joined_at, left_at, user_agent
 ```
 
-All tables are created from `sql/table.sql` with `#IfNotTable` guards. Schema changes ship as
+All tables are created from `sql/install.sql` with `#IfNotTable` guards. Schema changes ship as
 `sql/<from>-to-<to>_upgrade.sql` and bump `version.php`.
 
 ## Settings

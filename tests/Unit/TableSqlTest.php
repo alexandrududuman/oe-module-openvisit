@@ -63,6 +63,18 @@ final class TableSqlTest extends TestCase
         self::assertNull($guard, 'file ends inside an open directive block');
     }
 
+    /**
+     * Core stores the module's SQL version only when it finds sql/install.sql or a root table.sql
+     * next to version.php; without it the Module Manager never offers the upgrade scripts.
+     */
+    public function testCoreCanReadTheSqlVersionAndFindTheInstallScript(): void
+    {
+        $root = dirname(__DIR__, 2);
+        self::assertFileExists($root . '/version.php');
+        self::assertFileExists($root . '/sql/install.sql');
+        self::assertFileDoesNotExist($root . '/sql/table.sql', 'core would run sql/table.sql but never record the SQL version');
+    }
+
     public function testUpgradeFilesFollowTheCoreNamingPattern(): void
     {
         $files = glob(dirname(__DIR__, 2) . '/sql/*_upgrade.sql') ?: [];
@@ -74,7 +86,7 @@ final class TableSqlTest extends TestCase
 
     public function testTablesCarryTheModulePrefix(): void
     {
-        $sql = (string) file_get_contents(dirname(__DIR__, 2) . '/sql/table.sql');
+        $sql = (string) file_get_contents(dirname(__DIR__, 2) . '/sql/install.sql');
         preg_match_all('/CREATE TABLE IF NOT EXISTS `(\w+)`/', $sql, $m);
         self::assertNotEmpty($m[1]);
         foreach ($m[1] as $table) {
