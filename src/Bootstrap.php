@@ -62,7 +62,7 @@ final class Bootstrap
         (new GlobalsListener())->subscribe($this->dispatcher);
         (new MenuListener())->subscribe($this->dispatcher);
         (new AppointmentListener($this->gateway(...)))->subscribe($this->dispatcher);
-        (new PortalListener($this->gateway(...)))->subscribe($this->dispatcher);
+        (new PortalListener($this->gateway(...), static fn(): SqlSessionStore => new SqlSessionStore()))->subscribe($this->dispatcher);
         (new CalendarListener($this->gateway(...)))->subscribe($this->dispatcher);
         (new EncounterListener(fn(int $encounter): string => $this->visitController()->encounterCard(
             $encounter,

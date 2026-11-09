@@ -7,7 +7,8 @@ For providers and front desk staff. Your administrator sets OpenVisit up first; 
 
 Book the appointment in the calendar with the **Telehealth Visit** category. Telehealth
 appointments carry a camera icon. Patients with a portal account see a **Join video visit**
-button on the appointment; everyone else gets a link from you.
+button on the appointment; everyone else gets a link from you. Once you end the visit, the
+portal shows that it has ended instead of the button.
 
 A patient who has no appointment can still be seen: open **Telehealth** in the main menu, search
 the patient under *Start a visit without an appointment* and click **Start video visit**. OpenVisit

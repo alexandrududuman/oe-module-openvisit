@@ -16,18 +16,22 @@ use OpenEMR\Events\Core\TwigEnvironmentEvent;
 use OpenEMR\Events\PatientPortal\AppointmentFilterEvent;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Bootstrap;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\ClinicalGateway;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Repository\SessionStore;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Support\Scalars;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Twig\Loader\FilesystemLoader;
 
 /**
- * Patient portal: a Join button on telehealth appointments. The portal template only prints
- * four fields, so the module overrides it through the Twig loader.
+ * Patient portal: a Join button on telehealth appointments, or a note once the visit has ended.
+ * The portal template only prints four fields, so the module overrides it through the Twig loader.
  */
 final class PortalListener
 {
-    /** @param \Closure(): ClinicalGateway $gateway */
-    public function __construct(private readonly \Closure $gateway) {}
+    /**
+     * @param \Closure(): ClinicalGateway $gateway
+     * @param \Closure(): SessionStore $sessions
+     */
+    public function __construct(private readonly \Closure $gateway, private readonly \Closure $sessions) {}
 
     public function subscribe(EventDispatcherInterface $dispatcher): void
     {
@@ -44,7 +48,11 @@ final class PortalListener
             return;
         }
         $appointment = $event->getAppointment();
-        $appointment['openvisitJoinUrl'] = Bootstrap::MODULE_PATH . '/public/portal-join.php?eid=' . $eid;
+        if (($this->sessions)()->findByAppointment($eid)?->isEnded() === true) {
+            $appointment['openvisitEnded'] = true;
+        } else {
+            $appointment['openvisitJoinUrl'] = Bootstrap::MODULE_PATH . '/public/portal-join.php?eid=' . $eid;
+        }
         $event->setAppointment($appointment);
     }
 
