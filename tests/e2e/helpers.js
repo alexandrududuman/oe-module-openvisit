@@ -108,4 +108,46 @@ async function configureOpenVisit(browser, { domain, appId, secret }) {
   await context.close();
 }
 
-module.exports = { USERS, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, globalsField, saveGlobals, configureOpenVisit };
+// Media seen by one participant, read from the Jitsi page's own peer connection.
+// Null until that browser is in the conference.
+async function callStats(page) {
+  const frame = page.frames().find((f) => /\/ov-[a-z0-9]{22}/.test(f.url()));
+  if (!frame) {
+    return null;
+  }
+  return frame.evaluate(async () => {
+    const room = window.APP && window.APP.conference && window.APP.conference._room;
+    if (!room || !room.isJoined()) {
+      return null;
+    }
+    const session = room.isP2PActive() ? room.p2pJingleSession : room.jvbJingleSession;
+    const pc = session && session.peerconnection && session.peerconnection.peerconnection;
+    const stats = { remotes: room.getParticipants().filter((p) => !p.isHidden()).length, p2p: room.isP2PActive(), audioIn: 0, videoIn: 0, sent: 0 };
+    if (!pc) {
+      return stats;
+    }
+    (await pc.getStats()).forEach((s) => {
+      if (s.type === 'inbound-rtp') {
+        stats[s.kind === 'audio' ? 'audioIn' : 'videoIn'] += s.bytesReceived ?? 0;
+      }
+      if (s.type === 'outbound-rtp') {
+        stats.sent += s.bytesSent ?? 0;
+      }
+    });
+    return stats;
+  });
+}
+
+// Passes once the participant sees the expected number of others and audio and video keep arriving.
+async function expectMediaFlowing(page, remotes, timeout = 60_000) {
+  let previous = await callStats(page);
+  await expect.poll(async () => {
+    const now = await callStats(page);
+    const flowing = Boolean(now && previous && now.remotes === remotes
+      && now.audioIn > previous.audioIn && now.videoIn > previous.videoIn && now.sent > previous.sent);
+    previous = now;
+    return flowing;
+  }, { timeout, intervals: [3_000] }).toBe(true);
+}
+
+module.exports = { USERS, callStats, expectMediaFlowing, login, openMenuEntry, clickTopMenu, frameBySrc, frameByUrl, waitForDialogToClose, globalsField, saveGlobals, configureOpenVisit };
