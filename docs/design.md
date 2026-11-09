@@ -27,6 +27,9 @@ reading PHP.
 | Waiting room | Jitsi lobby. Provider is moderator, patient waits until admitted. |
 | Locked rooms | Per-session JWT, random room name, short expiry. |
 | Guest links | Interpreter, family member, second clinician. Same token mechanism, separate role. |
+| Invitations | Default: the provider copies the join link and sends it through the clinic's own channel. Optional: email through OpenEMR's configured mailer, one toggle, off by default. |
+| Ad-hoc visits | A provider can start a visit with a patient who has no appointment. The module creates the appointment in the telehealth category first. |
+| Telehealth visit form (optional) | Off by default. When enabled, the auto-created encounter gets a short form: modality, patient consent, connection quality. |
 | Portal integration (optional) | Patients with a portal account see a Join button on upcoming appointments. |
 | Settings page with self-check | Tests Jitsi reachability, JWT validity, TURN reachability. Reports what is wrong in plain language. |
 | Reference stack | `docker compose` with OpenEMR, module, Jitsi Meet, coturn, reverse proxy. |
@@ -152,9 +155,12 @@ Patients do not need a portal account.
 
 1. The provider clicks Invite on the appointment. The module creates a join token for the patient:
    32 random bytes, stored as a SHA-256 hash with the session id, role, expiry and use count.
-2. The patient receives an email with `https://<openemr>/interface/modules/custom_modules/oe-module-openvisit/public/join.php?t=<token>`.
-   The email contains the clinic name, the date and time, and the link. No diagnosis, no
-   provider notes.
+2. The module shows the link `https://<openemr>/interface/modules/custom_modules/oe-module-openvisit/public/join.php?t=<token>`
+   with a Copy button. The provider sends it through whatever channel the clinic already uses.
+   If "Send invitations by email" is enabled and the patient has an email address, the module
+   also sends it through OpenEMR's configured mailer. The email contains the clinic name, the
+   date and time, and the link. No diagnosis, no provider notes. The module never adds its own
+   mail configuration, so existing mail setups are untouched.
 3. `join.php` validates the token: exists, not expired, not revoked, within the join window
    (default: 30 minutes before the appointment to 2 hours after). It shows a pre-join page with
    the patient's first name, camera and microphone check, and the Join button.
@@ -198,6 +204,10 @@ Section "OpenVisit" in Administration > Globals:
 | Join window after appointment (hours) | number | 2 |
 | Telehealth calendar category | select | the category installed by the module |
 | Default appointment duration for ad-hoc visits (minutes) | number | 15 |
+| Allow ad-hoc visits | checkbox | on |
+| Send invitations by email | checkbox | off |
+| Attach telehealth visit form to encounters | checkbox | off |
+| Patient display name in the room | select: first name, first name and last initial | first name |
 
 The module settings page (Module Manager iframe) runs the self-check: DNS and HTTPS to the Jitsi
 domain, a signed test token accepted by the server, TURN host and port reachable, OpenEMR email
@@ -240,16 +250,19 @@ configured. Each check reports pass or fail with a one-line fix.
 - The repository is private until the first release is installable and the documentation is
   complete. Then it goes public and is submitted to Packagist and announced on the OpenEMR forum.
 
-## Open questions
+## Decisions
 
-1. **Encounter form**: should the module open a plain encounter, or also attach a short
-   "Telehealth visit" form with modality, consent and connection quality? Proposal: plain
-   encounter in v1, form in 1.x.
-2. **Email sender**: core `MyMailer` with the practice return address, or a module-specific
-   address? Proposal: core settings, nothing new to configure.
-3. **Ad-hoc visits**: allow a provider to start a visit with a patient who has no appointment
-   today? Proposal: yes, the module creates the appointment in the telehealth category first.
-4. **Patient display name**: first name only, or first name and last initial? Proposal: first
-   name only.
-5. **Multi-site**: OpenEMR supports several sites per install. v1 assumes one Jitsi server per
-   site, configured in that site's globals. Confirm this is acceptable.
+Resolved on 2026-11-09.
+
+1. **Encounter form.** A plain encounter by default. The optional "Telehealth visit" form ships
+   in v1 behind a setting that is off by default, so a clinic that wants it turns on one checkbox.
+2. **Email.** Off by default. The module never sends mail unless the administrator enables it,
+   and then only through OpenEMR's existing mailer settings. Nothing new to configure and no
+   risk of interfering with a customised installation.
+3. **Ad-hoc visits.** Allowed. The module creates the appointment first, in the telehealth
+   category, so the session is always tied to an appointment and an encounter.
+4. **Patient display name.** First name only by default, with a setting for first name and last
+   initial.
+5. **Multi-site.** Each OpenEMR site has its own database and its own globals, so the Jitsi
+   configuration is per site with no extra work. Several sites may share one Jitsi server;
+   random room names prevent collisions. No multi-site code in the module.
