@@ -31,6 +31,7 @@ final class Settings
     public const SEND_EMAIL = 'openvisit_send_email';
     public const ATTACH_VISIT_FORM = 'openvisit_attach_visit_form';
     public const SHOW_PATIENT_LAST_INITIAL = 'openvisit_show_patient_last_initial';
+    public const CALENDAR_CATEGORY = 'openvisit_calendar_category';
 
     /**
      * Labels and descriptions are English source strings; callers translate them.
@@ -57,6 +58,12 @@ final class Settings
                 'type' => GlobalSetting::DATA_TYPE_ENCRYPTED,
                 'default' => '',
                 'description' => 'JWT_APP_SECRET configured on the Jitsi server. Stored encrypted.',
+            ],
+            self::CALENDAR_CATEGORY => [
+                'label' => 'Telehealth calendar category',
+                'type' => GlobalSetting::DATA_TYPE_DEFAULT_VISIT_CATEGORY,
+                'default' => '',
+                'description' => 'Appointments in this category get the Start video visit button. Leave empty to use the Telehealth Visit category installed by the module.',
             ],
             self::JOIN_BEFORE_MINUTES => [
                 'label' => 'Join window before appointment (minutes)',

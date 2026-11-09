@@ -11,6 +11,7 @@ namespace OpenEMR\Services\Globals;
 class GlobalSetting
 {
     public const DATA_TYPE_BOOL = 'bool';
+    public const DATA_TYPE_DEFAULT_VISIT_CATEGORY = 'default_visit_category';
     public const DATA_TYPE_ENCRYPTED = 'encrypted';
     public const DATA_TYPE_NUMBER = 'num';
     public const DATA_TYPE_TEXT = 'text';
