@@ -59,3 +59,20 @@ docker compose exec -u 1000 -w /var/www/localhost/htdocs/openemr/interface/modul
 docker compose exec -u 1000 -w /var/www/localhost/htdocs/openemr/interface/modules/custom_modules/oe-module-openvisit openemr composer test
 docker compose exec -u 1000 -w /var/www/localhost/htdocs/openemr/interface/modules/custom_modules/oe-module-openvisit -e OPENEMR_ROOT=/var/www/localhost/htdocs/openemr openemr composer phpstan
 ```
+
+### Browser journeys
+
+Every phase ships a Playwright journey in `tests/e2e/` that walks through OpenEMR the way a
+user does: log in, use the menus, fill forms, read the result. They run from the host against
+the dev stack:
+
+```sh
+npm install
+npx playwright install chromium
+npm run e2e            # headless
+npm run e2e:headed     # watch it click
+```
+
+Set `OPENEMR_URL` if the stack is not on `https://localhost:9300`. The journeys use the demo
+users (`admin/pass`, `physician/physician`, `accountant/accountant`) and leave the settings as
+they found them.

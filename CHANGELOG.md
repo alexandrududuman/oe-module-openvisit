@@ -14,3 +14,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   menu entry under Modules and placeholder pages.
 - Unit tests, PHPStan at level max against OpenEMR 8.5, PHP-CS-Fixer and GitHub Actions CI.
 - Install guide in `docs/install.md`.
+- Playwright browser journeys in `tests/e2e/` covering admin, physician and non-clinical users.
