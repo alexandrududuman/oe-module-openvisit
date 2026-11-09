@@ -16,7 +16,6 @@ require_once __DIR__ . '/../../../../../portal/verify_session.php';
 
 use OpenEMR\Core\OEGlobalsBag;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Bootstrap;
-use OpenVisit\OpenEMR\Modules\OpenVisit\Model\JoinToken;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Support\Scalars;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -26,13 +25,19 @@ $gateway = $bootstrap->gateway();
 $patientId = Scalars::int($pid ?? null);
 $appointment = $gateway->appointment($request->query->getInt('eid'));
 
-if ($appointment === null || $patientId <= 0 || $appointment->pid !== $patientId) {
+if ($appointment === null || $patientId <= 0 || $appointment->pid !== $patientId || $appointment->categoryId !== $gateway->telehealthCategoryId()) {
     http_response_code(404);
     echo xlt('This appointment is not yours or no longer exists.');
     exit;
 }
 
 $visit = $bootstrap->visits()->ensureSession($appointment);
-$issued = $bootstrap->tokens()->issue($visit, $appointment, JoinToken::ROLE_PATIENT, 'portal', 0);
+$issued = $bootstrap->tokens()->issuePortal($visit, $appointment, $patientId);
+if ($issued === null) {
+    http_response_code(429);
+    echo xlt('Too many attempts. Please wait a few minutes.');
+    exit;
+}
+header('Cache-Control: no-store');
 header('Location: ' . $bootstrap->tokens()->joinUrl($issued->plaintext));
 exit;

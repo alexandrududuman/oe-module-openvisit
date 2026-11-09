@@ -46,7 +46,7 @@ $controller = $bootstrap->visitController();
 $userId = Scalars::int($session->get('authUserID'));
 
 if ($action === 'end') {
-    $result = $controller->end($request->request->getInt('session_id'));
+    $result = $controller->end($request->request->getInt('session_id'), $userId);
     $respond($result, $result['ok'] ? 200 : 404);
 }
 if (str_starts_with($action, 'invite.')) {
@@ -71,8 +71,9 @@ if (str_starts_with($action, 'participant.')) {
         $request->request->getInt('participant_id'),
         (string) $request->request->get('display_name', ''),
         (string) $request->headers->get('User-Agent', ''),
+        $userId,
     );
-    $respond($result, 200);
+    $respond($result, $result['ok'] ? 200 : 404);
 }
 
 $respond(['ok' => false, 'error' => 'Unknown action'], 400);

@@ -39,6 +39,12 @@ interface ClinicalGateway
 
     public function telehealthCategoryId(): ?int;
 
+    /** True for users allowed to act on every visit, not only their own (admin/super). */
+    public function canSuperviseVisits(): bool;
+
+    /** True when the current user may look patients up by name (patients/demo). */
+    public function canSearchPatients(): bool;
+
     /** @return array{first: string, last: string} */
     public function userName(int $userId): array;
 

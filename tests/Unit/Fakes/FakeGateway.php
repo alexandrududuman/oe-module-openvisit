@@ -82,6 +82,19 @@ final class FakeGateway implements ClinicalGateway
         return 11;
     }
 
+    public bool $supervisor = false;
+    public bool $mayDemo = true;
+
+    public function canSuperviseVisits(): bool
+    {
+        return $this->supervisor;
+    }
+
+    public function canSearchPatients(): bool
+    {
+        return $this->mayDemo;
+    }
+
     public function userName(int $userId): array
     {
         return ['first' => 'Donna', 'last' => 'Lee'];
@@ -102,9 +115,11 @@ final class FakeGateway implements ClinicalGateway
     /** @var list<array{to: string, subject: string}> */
     public array $sent = [];
 
+    public string $baseUrl = 'https://emr.example.test/openemr';
+
     public function publicBaseUrl(): string
     {
-        return 'https://emr.example.test/openemr';
+        return $this->baseUrl;
     }
 
     public function siteId(): string

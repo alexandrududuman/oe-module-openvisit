@@ -49,6 +49,10 @@ final class VisitController
             return $this->error(xl('No appointment was given.'));
         }
 
+        $appointment = $this->gateway->appointment($eid);
+        if ($appointment === null || !$this->mayAct($appointment, $userId) || $appointment->categoryId !== $this->gateway->telehealthCategoryId()) {
+            return $this->error(xl('This appointment is not a telehealth visit you can run.'));
+        }
         try {
             $started = $this->visits->startForProvider($eid, $userId);
         } catch (VisitException $e) {
@@ -70,7 +74,7 @@ final class VisitController
             'room' => $started->visit->roomName,
             'jwt' => $jwt,
             'displayName' => $displayName,
-            'subject' => xl('Visit with') . ' ' . $started->appointment->patientFirstName,
+            'subject' => xl('Video visit'),
             'sessionId' => $started->visit->id,
             'csrf' => $csrfToken,
             'endUrl' => Bootstrap::MODULE_PATH . '/public/api.php',
@@ -88,8 +92,11 @@ final class VisitController
     }
 
     /** @return array{ok: bool, status?: string, durationMinutes?: int|null, error?: string} */
-    public function end(int $sessionId): array
+    public function end(int $sessionId, int $userId): array
     {
+        if ($this->ownedVisit($sessionId, $userId) === null) {
+            return ['ok' => false, 'error' => xl('This visit does not exist.')];
+        }
         try {
             $visit = $this->visits->end($sessionId);
         } catch (VisitException $e) {
@@ -101,11 +108,11 @@ final class VisitController
     /** @return array<string, mixed> */
     public function invite(string $action, int $sessionId, string $role, ?string $label, int $tokenId, int $userId): array
     {
-        $visit = $this->sessions->findById($sessionId);
-        $appointment = $visit === null ? null : $this->gateway->appointment($visit->eid);
-        if ($visit === null || $appointment === null) {
+        $owned = $this->ownedVisit($sessionId, $userId);
+        if ($owned === null) {
             return ['ok' => false, 'error' => xl('This visit does not exist.')];
         }
+        [$visit, $appointment] = $owned;
         try {
             switch ($action) {
                 case 'invite.list':
@@ -116,7 +123,7 @@ final class VisitController
                     }
                     return ['ok' => true, 'link' => $this->invites->create($visit, $appointment, $role, $label, $userId)];
                 case 'invite.revoke':
-                    $this->tokens->revoke($tokenId, $userId);
+                    $this->tokens->revoke($tokenId, $sessionId, $userId);
                     return ['ok' => true];
                 case 'invite.email':
                     $link = $this->invites->create($visit, $appointment, 'patient', null, $userId);
@@ -129,15 +136,41 @@ final class VisitController
         return ['ok' => false, 'error' => 'unknown action'];
     }
 
-    /** @return array{ok: bool, participantId?: int} */
-    public function participant(string $action, int $sessionId, int $participantId, string $displayName, string $userAgent): array
+    /** @return array{ok: bool, participantId?: int, error?: string} */
+    public function participant(string $action, int $sessionId, int $participantId, string $displayName, string $userAgent, int $userId): array
     {
+        if ($this->ownedVisit($sessionId, $userId) === null) {
+            return ['ok' => false, 'error' => xl('This visit does not exist.')];
+        }
         if ($action === 'participant.joined') {
             $p = $this->participants->joined($sessionId, 'provider', $displayName, null, $userAgent);
             return ['ok' => true, 'participantId' => $p->id];
         }
-        $this->participants->left($participantId, $sessionId);
-        return ['ok' => true];
+        if ($action === 'participant.left') {
+            $this->participants->left($participantId, $sessionId);
+            return ['ok' => true];
+        }
+        return ['ok' => false, 'error' => 'unknown action'];
+    }
+
+    /**
+     * The visit and its appointment when the user may act on it, else null (same answer as "not found").
+     *
+     * @return array{0: Visit, 1: Appointment}|null
+     */
+    private function ownedVisit(int $sessionId, int $userId): ?array
+    {
+        $visit = $this->sessions->findById($sessionId);
+        $appointment = $visit === null ? null : $this->gateway->appointment($visit->eid);
+        if ($visit === null || $appointment === null || !$this->mayAct($appointment, $userId)) {
+            return null;
+        }
+        return [$visit, $appointment];
+    }
+
+    private function mayAct(Appointment $appointment, int $userId): bool
+    {
+        return $appointment->providerId === $userId || $this->gateway->canSuperviseVisits();
     }
 
     /** @return array<string, mixed> */
@@ -147,6 +180,9 @@ final class VisitController
             return ['ok' => false, 'error' => xl('Unscheduled visits are turned off in the OpenVisit settings.')];
         }
         if ($action === 'patient.search') {
+            if (!$this->gateway->canSearchPatients()) {
+                return ['ok' => false, 'error' => xl('You are not allowed to look patients up.')];
+            }
             return ['ok' => true, 'patients' => $this->gateway->searchPatients($query)];
         }
         $categoryId = $this->gateway->telehealthCategoryId();
@@ -218,8 +254,7 @@ final class VisitController
 
         return $this->twig->render('today.html.twig', [
             'assets' => Bootstrap::assetPath(),
-            'csrf' => $csrfToken,
-            'apiUrl' => Bootstrap::MODULE_PATH . '/public/api.php',
+            'todayConfig' => json_encode(['csrf' => $csrfToken, 'apiUrl' => Bootstrap::MODULE_PATH . '/public/api.php'], JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT),
             'allowAdhoc' => $this->config->allowAdhoc(),
             'date' => $today,
             'rows' => $rows,

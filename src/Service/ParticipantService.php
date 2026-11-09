@@ -48,6 +48,28 @@ final class ParticipantService
         }
     }
 
+    /** The participant row this link opened and has not closed yet, if any. */
+    public function openForToken(int $sessionId, int $tokenId): ?Participant
+    {
+        foreach ($this->participants->findBySession($sessionId) as $participant) {
+            if ($participant->tokenId === $tokenId && $participant->leftAt === null) {
+                return $participant;
+            }
+        }
+        return null;
+    }
+
+    /** A link may only close the row it opened. */
+    public function leftOwn(int $participantId, int $sessionId, int $tokenId): void
+    {
+        foreach ($this->participants->findBySession($sessionId) as $participant) {
+            if ($participant->id === $participantId && $participant->tokenId === $tokenId) {
+                $this->participants->left($participantId, $this->gateway->now()->format(self::DB_FORMAT));
+                return;
+            }
+        }
+    }
+
     /** @return list<Participant> */
     public function forSession(int $sessionId): array
     {

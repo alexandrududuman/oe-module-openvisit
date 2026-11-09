@@ -75,6 +75,13 @@ final class ModuleConfig
         return ctype_digit($raw) && (int) $raw > 0 ? (int) $raw : null;
     }
 
+    /** @return list<string> */
+    public function trustedProxies(): array
+    {
+        $items = array_map('trim', explode(',', $this->value(Settings::TRUSTED_PROXIES)));
+        return array_values(array_filter($items, static fn(string $v): bool => preg_match('#^[0-9a-fA-F:.]+(/\d{1,3})?$#', $v) === 1));
+    }
+
     public function allowAdhoc(): bool
     {
         return $this->value(Settings::ALLOW_ADHOC) === '1';

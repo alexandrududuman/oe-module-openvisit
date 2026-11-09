@@ -39,6 +39,9 @@ final class VisitService
 
         $visit = $this->sessions->findByAppointment($eid)
             ?? $this->sessions->create($eid, $userId, $this->rooms->generate());
+        if ($visit->isEnded()) {
+            throw new VisitException(xl('This visit was already ended. Start a new visit from the Telehealth page if you need to talk again.'));
+        }
 
         $now = $this->gateway->now()->format(self::DB_FORMAT);
         $encounter = $visit->encounter;

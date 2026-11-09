@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace OpenVisit\OpenEMR\Modules\OpenVisit\Service;
 
 use OpenVisit\OpenEMR\Modules\OpenVisit\Config\ModuleConfig;
+use OpenVisit\OpenEMR\Modules\OpenVisit\Exception\VisitException;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Gateway\ClinicalGateway;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Model\Appointment;
 use OpenVisit\OpenEMR\Modules\OpenVisit\Model\IssuedToken;
@@ -56,19 +57,41 @@ final class TokenService
         return new IssuedToken($token, $plaintext);
     }
 
+    /** Portal patients get a short-lived, few-use link; at most 10 per patient per 10 minutes. */
+    public function issuePortal(Visit $visit, Appointment $appointment, int $pid): ?IssuedToken
+    {
+        $now = $this->gateway->now();
+        $key = hash('sha256', 'portal:' . $pid);
+        $since = $now->modify('-' . self::RATE_LIMIT_MINUTES . ' minutes')->format(self::DB_FORMAT);
+        if ($this->attempts->countSince($key, $since) >= self::RATE_LIMIT_ATTEMPTS) {
+            return null;
+        }
+        $this->attempts->record($key, $now->format(self::DB_FORMAT));
+        $plaintext = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+        $expiresAt = min($this->window($appointment)->closesAt, $now->modify('+2 hours'))->format(self::DB_FORMAT);
+        $token = $this->tokens->create($visit->id, JoinToken::ROLE_PATIENT, self::hash($plaintext), 'portal', $expiresAt, 3, 0);
+        return new IssuedToken($token, $plaintext);
+    }
+
     /** Validates a link as presented by a browser. Counts the attempt against the client first. */
     public function check(string $plaintext, string $clientId): TokenCheck
     {
         $now = $this->gateway->now();
-        $clientHash = hash('sha256', $clientId);
+        $clientHash = hash('sha256', 'client:' . $clientId);
+        $tokenHash = hash('sha256', 'token:' . $plaintext);
         $since = $now->modify('-' . self::RATE_LIMIT_MINUTES . ' minutes')->format(self::DB_FORMAT);
-        if ($this->attempts->countSince($clientHash, $since) >= self::RATE_LIMIT_ATTEMPTS) {
+        if (
+            $this->attempts->countSince($clientHash, $since) >= self::RATE_LIMIT_ATTEMPTS
+            || $this->attempts->countSince($tokenHash, $since) >= self::RATE_LIMIT_ATTEMPTS
+        ) {
             return TokenCheck::failed(TokenCheck::RATE_LIMITED);
         }
-        $this->attempts->record($clientHash, $now->format(self::DB_FORMAT));
 
         $token = $this->tokens->findByHash(self::hash($plaintext));
         if ($token === null) {
+            // Only failures count, so a patient reloading a good link is never locked out.
+            $this->attempts->record($clientHash, $now->format(self::DB_FORMAT));
+            $this->attempts->record($tokenHash, $now->format(self::DB_FORMAT));
             return TokenCheck::failed(TokenCheck::UNKNOWN);
         }
         if ($token->isRevoked()) {
@@ -86,6 +109,9 @@ final class TokenService
         if ($visit === null || $appointment === null || $visit->status === Visit::STATUS_CANCELLED) {
             return TokenCheck::failed(TokenCheck::EXPIRED, $token);
         }
+        if ($visit->isEnded()) {
+            return TokenCheck::failed(TokenCheck::CLOSED, $token);
+        }
         $window = $this->window($appointment);
         if ($window->isBefore($now)) {
             return TokenCheck::failed(TokenCheck::NOT_YET, $token, $window);
@@ -96,22 +122,27 @@ final class TokenService
         return new TokenCheck(TokenCheck::OK, $token, $visit, $appointment, $window);
     }
 
-    /** Resolves a link to its token without window or rate checks, for in-room event reporting. */
+    /** Resolves a link for in-room event reporting: must be live and its visit still open. */
     public function resolve(string $plaintext): ?JoinToken
     {
         $token = $this->tokens->findByHash(self::hash($plaintext));
-        return $token === null || $token->isRevoked() ? null : $token;
+        if ($token === null || !$token->isActive($this->gateway->now())) {
+            return null;
+        }
+        $visit = $this->sessions->findById($token->sessionId);
+        return $visit === null || $visit->isEnded() ? null : $token;
     }
 
-    public function consume(JoinToken $token): void
+    /** Counts one use atomically; false when the cap was reached by a concurrent request. */
+    public function consume(JoinToken $token): bool
     {
-        $this->tokens->recordUse($token->id);
+        return $this->tokens->recordUse($token->id);
     }
 
-    public function revoke(int $tokenId, int $userId): void
+    public function revoke(int $tokenId, int $sessionId, int $userId): void
     {
         $token = $this->tokens->findById($tokenId);
-        if ($token === null) {
+        if ($token === null || $token->sessionId !== $sessionId) {
             return;
         }
         $this->tokens->revoke($token->id, $this->gateway->now()->format(self::DB_FORMAT));
@@ -137,7 +168,11 @@ final class TokenService
 
     public function joinUrl(string $plaintext): string
     {
-        return $this->gateway->publicBaseUrl() . '/interface/modules/custom_modules/oe-module-openvisit/public/join.php?'
+        $base = $this->gateway->publicBaseUrl();
+        if ($base === '') {
+            throw new VisitException(xl('The site address is not set, so patient links cannot be built. Ask an administrator to set it under Administration, Globals, Connectors.'));
+        }
+        return $base . '/interface/modules/custom_modules/oe-module-openvisit/public/join.php?'
             . http_build_query(['t' => $plaintext, 'site' => $this->gateway->siteId()]);
     }
 

@@ -46,10 +46,14 @@ final class InMemoryTokenStore implements TokenStore
         $this->rows[$id] = new JoinToken($t->id, $t->sessionId, $t->role, $t->label, $t->expiresAt, $t->revokedAt ?? $revokedAt, $t->uses, $t->maxUses, $t->createdBy, $t->createdAt);
     }
 
-    public function recordUse(int $id): void
+    public function recordUse(int $id): bool
     {
         $t = $this->rows[$id];
+        if ($t->uses >= $t->maxUses || $t->revokedAt !== null) {
+            return false;
+        }
         $this->rows[$id] = new JoinToken($t->id, $t->sessionId, $t->role, $t->label, $t->expiresAt, $t->revokedAt, $t->uses + 1, $t->maxUses, $t->createdBy, $t->createdAt);
+        return true;
     }
 
     public function purgeExpiredBefore(string $before): int

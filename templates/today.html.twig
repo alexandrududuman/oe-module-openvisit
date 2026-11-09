@@ -71,7 +71,7 @@
         </table>
     {% endif %}
 </div>
-<script type="application/json" id="openvisit-today-config">{{ {'csrf': csrf, 'apiUrl': apiUrl}|json_encode|raw }}</script>
+<script type="application/json" id="openvisit-today-config">{{ todayConfig }}</script>
 <script src="{{ assets|attr }}/js/today.js" defer></script>
 </body>
 </html>
