@@ -18,8 +18,9 @@ for confirmed issues. Credit is given in the changelog unless you prefer otherwi
 
 ## Supported versions
 
-| Version    | Supported |
-|------------|-----------|
-| unreleased | n/a       |
+| Version | Supported |
+|---------|-----------|
+| 0.6.x   | yes       |
+| < 0.6   | no        |
 
-Once releases exist, the latest minor release receives security fixes.
+Only the latest minor release receives security fixes.
