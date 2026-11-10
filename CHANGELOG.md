@@ -6,12 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
-### Changed
-- A second video call with the same patient and provider on the same day joins the encounter
-  already open, instead of opening another one. OpenVisit follows OpenEMR's **Auto-Create New
-  Encounters** setting: with **Allow Encounter For Each Appointment** every appointment still
-  gets its own encounter. An encounter the front desk opened at check-in is reused too. The
-  encounter page lists each call with its times and recordings.
+## [0.6.0] - 2026-11-10
+
+Recording, a video visit that floats over OpenEMR while the provider works, and encounters that
+follow OpenEMR's own setting. Installs are proven on pristine OpenEMR from 8.2.0 to the next
+release.
 
 ### Fixed
 - End visit now closes the Jitsi call for everyone. Before, patient and guests stayed connected
@@ -37,6 +36,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   ended. The card says the visit has ended; before, the button led to a page saying the same.
 
 ### Changed
+- A second video call with the same patient and provider on the same day joins the encounter
+  already open, instead of opening another one. OpenVisit follows OpenEMR's **Auto-Create New
+  Encounters** setting: with **Allow Encounter For Each Appointment** every appointment still
+  gets its own encounter. An encounter the front desk opened at check-in is reused too. The
+  encounter page lists each call with its times and recordings.
 - Schema 0.6.0: `openvisit_recording` table, applied by `sql/0_5_0-to-0_6_0_upgrade.sql`.
 - Supported OpenEMR: 8.2.0 or newer. On an older release the module stays inactive
   instead of breaking core pages, and its setup check says which version it needs.
@@ -154,7 +158,8 @@ First installable release: a provider can run a video visit from the calendar.
 - Install guide in `docs/install.md`.
 - Playwright browser journeys in `tests/e2e/` covering admin, physician and non-clinical users.
 
-[Unreleased]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/alexandrududuman/oe-module-openvisit/compare/v0.2.0...v0.3.0

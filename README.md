@@ -88,7 +88,7 @@ and the developer setup.
 
 | OpenVisit  | OpenEMR                  | Jitsi Meet (docker-jitsi-meet) |
 |------------|--------------------------|--------------------------------|
-| unreleased | 8.2.0 to 8.6.0 (next)    | stable-11248-3                 |
+| 0.6.0      | 8.2.0 to 8.6.0 (next)    | stable-11248-3                 |
 | 0.5.0      | 8.5.0                    | stable-11248-3                 |
 
 Every pull request runs unit tests, PHPStan at level max against OpenEMR 8.5, browser journeys
