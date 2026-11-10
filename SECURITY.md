@@ -7,7 +7,9 @@ privately.
 
 Do not open a public issue for a security problem.
 
-Email **alexandru@thepenguindeveloper.com** with:
+Report it privately with **Report a vulnerability** on the
+[Security tab](https://github.com/alexandrududuman/oe-module-openvisit/security/advisories/new),
+or email **alexandru@thepenguindeveloper.com**. Include:
 
 - the module version and the OpenEMR version
 - steps to reproduce, or a proof of concept
